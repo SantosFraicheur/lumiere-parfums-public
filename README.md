@@ -46,8 +46,8 @@ Backend Node.js + Express · Base de données PostgreSQL · Fichiers sur Cloudin
    | `DATABASE_URL` | (Depuis votre DB Render → **Connection String**) |
    | `JWT_SECRET` | (Cliquez **Generate** ou générez avec `openssl rand -hex 64`) |
    | `JWT_EXPIRES_IN` | `7d` |
-   | `ADMIN_USERNAME` | Votre identifiant admin |
-   | `ADMIN_PASSWORD` | Votre mot de passe admin |
+   | `ADMIN_USERNAME` | `admin_lumiere` |
+   | `ADMIN_PASSWORD` | `lumi_ere/2025@*` |
    | `CLOUDINARY_CLOUD_NAME` | Votre cloud name |
    | `CLOUDINARY_API_KEY` | Votre API key |
    | `CLOUDINARY_API_SECRET` | Votre API secret |
