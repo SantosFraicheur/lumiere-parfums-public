@@ -92,8 +92,14 @@ const apiLimiter = rateLimit({
 });
 app.use('/api/', apiLimiter);
 
+// ── Désactive le cache sur toutes les routes API ──────────────
+app.use('/api/', (_req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
+
 // ── Fichiers statiques ────────────────────────────────────────
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), { etag: false, lastModified: false }));
 
 // ── Connexion PostgreSQL ──────────────────────────────────────
 const pool = new Pool({
