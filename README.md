@@ -5,7 +5,7 @@ Backend Node.js + Express · Base de données PostgreSQL · Fichiers sur Cloudin
 
 ---
 
-## Déploiement sur Render (5 étapes)
+## Déploiement sur Railway (gratuit, sans carte bancaire)
 
 ### 1. Préparer Cloudinary (stockage fichiers gratuit)
 
@@ -17,83 +17,96 @@ Backend Node.js + Express · Base de données PostgreSQL · Fichiers sur Cloudin
 
 ---
 
-### 2. Créer la base de données sur Render
+### 2. Créer un compte Railway
 
-1. Render Dashboard → **New → PostgreSQL**
-2. Nom : `lumiere-db` · Plan : **Free**
-3. Cliquez **Create Database**
-4. Attendez ~1 minute que la DB soit prête
-
----
-
-### 3. Déployer le Web Service
-
-1. Render Dashboard → **New → Web Service**
-2. Connectez ce dépôt GitHub
-3. Paramètres :
-   | Champ | Valeur |
-   |---|---|
-   | Name | `lumiere-parfums` |
-   | Runtime | `Node` |
-   | Build Command | `npm install --omit=dev` |
-   | Start Command | `node server.js` |
-   | Plan | Free |
-
-4. **Environment Variables** — ajoutez :
-
-   | Variable | Valeur |
-   |---|---|
-   | `DATABASE_URL` | (Depuis votre DB Render → **Connection String**) |
-   | `JWT_SECRET` | (Cliquez **Generate** ou générez avec `openssl rand -hex 64`) |
-   | `JWT_EXPIRES_IN` | `7d` |
-   | `ADMIN_USERNAME` | `admin_lumiere` |
-   | `ADMIN_PASSWORD` | `lumi_ere/2025@*` |
-   | `CLOUDINARY_CLOUD_NAME` | Votre cloud name |
-   | `CLOUDINARY_API_KEY` | Votre API key |
-   | `CLOUDINARY_API_SECRET` | Votre API secret |
-   | `NODE_ENV` | `production` |
-
-5. Cliquez **Create Web Service**
+1. Allez sur [railway.app](https://railway.app)
+2. Cliquez **Login → Login with GitHub**
+3. Autorisez Railway à accéder à votre compte GitHub
 
 ---
 
-### 4. Initialiser la base de données
+### 3. Créer le projet Railway
 
-Render Dashboard → votre DB → **PSQL Command** → collez le contenu de `db.sql` :
-
-```bash
-psql $DATABASE_URL < db.sql
-```
-
-Ou utilisez l'onglet **Query** dans le dashboard Render et exécutez le contenu de `db.sql`.
+1. Dashboard Railway → **New Project**
+2. Choisissez **Deploy from GitHub repo**
+3. Sélectionnez le dépôt `lumiere-parfums`
+4. Railway détecte automatiquement Node.js et lance le déploiement
 
 ---
 
-### 5. Vérifier le déploiement
+### 4. Ajouter la base de données PostgreSQL
 
-```
-https://votre-app.onrender.com/api/health
-```
+1. Dans votre projet Railway → **New** → **Database** → **Add PostgreSQL**
+2. Railway crée la base et génère automatiquement la variable `DATABASE_URL`
 
+---
+
+### 5. Configurer les variables d'environnement
+
+Dans votre projet Railway → **Variables** → ajoutez :
+
+| Variable | Valeur |
+|---|---|
+| `ADMIN_USERNAME` | `admin_lumiere` |
+| `ADMIN_PASSWORD` | `lumi_ere/2025@*` |
+| `JWT_SECRET` | Cliquez **Generate** ou tapez une longue chaîne aléatoire |
+| `JWT_EXPIRES_IN` | `7d` |
+| `CLOUDINARY_CLOUD_NAME` | Votre cloud name |
+| `CLOUDINARY_API_KEY` | Votre API key |
+| `CLOUDINARY_API_SECRET` | Votre API secret |
+| `NODE_ENV` | `production` |
+
+> `DATABASE_URL` est ajouté automatiquement par Railway — ne pas le toucher.
+
+---
+
+### 6. Initialiser la base de données
+
+1. Railway Dashboard → votre service **PostgreSQL** → onglet **Query**
+2. Copiez-collez le contenu du fichier `db.sql` et exécutez
+
+---
+
+### 7. Vérifier le déploiement
+
+Railway génère une URL publique automatiquement (ex: `lumiere-parfums.up.railway.app`).
+
+Testez :
+```
+https://votre-app.up.railway.app/api/health
+```
 Réponse attendue : `{"status":"ok"}`
 
 ---
 
 ## Accès Admin
 
-- Allez sur `https://votre-app.onrender.com/#admin`
-- Connectez-vous avec `ADMIN_USERNAME` / `ADMIN_PASSWORD`
+- Allez sur `https://votre-app.up.railway.app/#admin`
+- **Identifiant :** `admin_lumiere`
+- **Mot de passe :** `lumi_ere/2025@*`
+
+---
+
+## Commandes de déploiement
+
+| Champ | Valeur |
+|---|---|
+| **Build Command** | `npm install --omit=dev` |
+| **Start Command** | `node server.js` |
+
+Ces valeurs sont détectées automatiquement via `railway.json`.
 
 ---
 
 ## Structure du projet
 
 ```
-lumiere/
+lumiere-parfums/
 ├── server.js          Backend Express (routes API, auth JWT, upload Cloudinary)
 ├── package.json       Dépendances Node.js
 ├── db.sql             Schéma PostgreSQL à exécuter une fois
-├── render.yaml        Config déploiement automatique Render
+├── railway.json       Config déploiement Railway (auto-détecté)
+├── render.yaml        Config déploiement Render (alternative)
 ├── .env.example       Template des variables d'environnement
 ├── .gitignore
 └── public/
