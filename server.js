@@ -108,9 +108,17 @@ app.use('/api/', (_req, res, next) => {
 app.use(express.static(path.join(__dirname, 'public'), { etag: false, lastModified: false }));
 
 // ── Connexion PostgreSQL ──────────────────────────────────────
-const dbUrl = process.env.DATABASE_URL || '';
-const dbUrlPreview = dbUrl.substring(0, 15) + '...' + dbUrl.substring(dbUrl.lastIndexOf('@'));
-console.log('DATABASE_URL détectée :', dbUrl.startsWith('postgres') ? dbUrlPreview : `INVALIDE (commence par: "${dbUrl.substring(0,30)}")`);
+// Railway fournit DATABASE_URL (interne) et DATABASE_PUBLIC_URL (externe)
+// On essaie les deux pour garantir la connexion au démarrage
+const dbUrl = process.env.DATABASE_PUBLIC_URL || process.env.DATABASE_URL || '';
+
+if (!dbUrl.startsWith('postgres')) {
+  console.error('FATAL: Aucune URL PostgreSQL valide (DATABASE_URL / DATABASE_PUBLIC_URL).');
+  process.exit(1);
+}
+
+const dbPreview = dbUrl.replace(/:\/\/[^@]+@/, '://***@');
+console.log('PostgreSQL URL utilisée :', dbPreview);
 
 const pool = new Pool({
   connectionString: dbUrl,
