@@ -119,18 +119,32 @@ pool.on('error', (err) => {
   console.error('Erreur pool PostgreSQL :', err.message);
 });
 
-(async () => {
-  try {
-    const client = await pool.connect();
-    console.log('Connecté à PostgreSQL');
-    client.release();
-    await initTables();
-    await initAdminPassword();
-  } catch (err) {
-    console.error('Connexion PostgreSQL échouée :', err.message);
-    process.exit(1);
+// ── Démarrage ─────────────────────────────────────────────────
+app.listen(PORT, () => {
+  console.log(`Serveur LUMIÈRE démarré sur le port ${PORT}`);
+  if (!cloudinaryEnabled) console.warn('ATTENTION: Cloudinary non configuré — uploads désactivés');
+  connectWithRetry();
+});
+
+async function connectWithRetry(attempts = 10, delayMs = 3000) {
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      const client = await pool.connect();
+      console.log('Connecté à PostgreSQL');
+      client.release();
+      await initTables();
+      await initAdminPassword();
+      return;
+    } catch (err) {
+      console.error(`Tentative ${i}/${attempts} — PostgreSQL inaccessible : ${err.message}`);
+      if (i === attempts) {
+        console.error('FATAL: Impossible de se connecter à PostgreSQL après toutes les tentatives.');
+        process.exit(1);
+      }
+      await new Promise(r => setTimeout(r, delayMs));
+    }
   }
-})();
+}
 
 // ── Création automatique des tables ──────────────────────────
 async function initTables() {
@@ -723,8 +737,3 @@ app.get('*', (_req, res) => {
 });
 
 
-// ── Démarrage ─────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`Serveur LUMIÈRE démarré sur le port ${PORT}`);
-  if (!cloudinaryEnabled) console.warn('ATTENTION: Cloudinary non configuré — uploads désactivés');
-});
