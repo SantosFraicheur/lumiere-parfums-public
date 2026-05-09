@@ -157,6 +157,8 @@ function showPage(name) {
   if (name === 'cart')     renderCart();
   if (name === 'tracking') { listenOrders(); renderTracking(); }
   if (name === 'payment')  renderPayment();
+  window.scrollTo(0, 0);
+  updateBottomNav(name);
 }
 
 function requireAuth(callback) {
@@ -240,6 +242,15 @@ function updateNavUser() {
   }
   updateMobileMenuAuth();
   updateCartCount();
+  // Bottom nav : label du bouton compte
+  const lbl = document.getElementById('bnav-account-label');
+  if (lbl) lbl.textContent = state.currentUser ? state.currentUser.name.split(' ')[0] : 'Compte';
+}
+
+// Bouton compte de la bottom nav
+function bnav_account() {
+  if (state.currentUser) showPage('tracking');
+  else showPage('auth');
 }
 
 function logout() {
@@ -301,6 +312,8 @@ function addToCart(productId) {
 function updateCartCount() {
   const count = state.cart.reduce((s, i) => s + i.qty, 0);
   document.getElementById('cart-count').textContent = count;
+  const badge = document.getElementById('bnav-cart-badge');
+  if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'flex' : 'none'; }
 }
 
 function renderCart() {
@@ -1026,6 +1039,26 @@ document.addEventListener('DOMContentLoaded', () => {
     m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); })
   );
 });
+
+// ════════════════════════════════════════════════════════════
+//  BOTTOM NAV MOBILE
+// ════════════════════════════════════════════════════════════
+function updateBottomNav(activePage) {
+  document.querySelectorAll('.bottom-nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.page === activePage);
+  });
+  const badge = document.getElementById('bnav-cart-badge');
+  if (badge) {
+    const count = state.cart.reduce((s, i) => s + i.qty, 0);
+    badge.textContent = count;
+    badge.style.display = count > 0 ? 'flex' : 'none';
+  }
+  // Compte : icône user colorée si connecté
+  const accountItem = document.querySelector('.bottom-nav-item[data-page="auth"]');
+  if (accountItem) {
+    accountItem.classList.toggle('active', activePage === 'auth' || activePage === 'tracking');
+  }
+}
 
 // ════════════════════════════════════════════════════════════
 //  MENU MOBILE — Hamburger drawer
