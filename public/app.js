@@ -262,23 +262,49 @@ function logout() {
 // ════════════════════════════════════════════════════════════
 //  PRODUITS
 // ════════════════════════════════════════════════════════════
+let activeCategory = 'all';
+
 async function listenProducts() {
   try {
     const data = await fetch('/api/products').then(r => r.json());
     state.products = data;
+    renderCategoryFilter();
     renderProducts();
     if (state.isAdmin) renderAdminProducts();
   } catch (_) {}
 }
 
+function renderCategoryFilter() {
+  const bar = document.getElementById('category-filter');
+  if (!bar) return;
+  const cats = ['all', ...new Set(state.products.map(p => p.category).filter(Boolean))];
+  bar.innerHTML = cats.map(cat => `
+    <button class="filter-btn ${activeCategory === cat ? 'active' : ''}"
+      onclick="setCategory('${escHtml(cat)}')">
+      ${cat === 'all' ? 'Tous' : escHtml(cat)}
+    </button>
+  `).join('');
+}
+
+function setCategory(cat) {
+  activeCategory = cat;
+  renderCategoryFilter();
+  renderProducts();
+}
+
 function renderProducts() {
   const grid = document.getElementById('products-grid');
   if (!grid) return;
-  if (!state.products.length) {
-    grid.innerHTML = `<div style="text-align:center;padding:80px;color:var(--text-dim);font-family:'Cormorant Garamond',serif;font-size:24px">La collection arrive bientôt…</div>`;
+  const filtered = activeCategory === 'all'
+    ? state.products
+    : state.products.filter(p => p.category === activeCategory);
+  if (!filtered.length) {
+    grid.innerHTML = `<div style="text-align:center;padding:80px;color:var(--text-dim);font-family:'Cormorant Garamond',serif;font-size:24px">
+      ${state.products.length ? 'Aucun produit dans cette catégorie' : 'La collection arrive bientôt…'}
+    </div>`;
     return;
   }
-  grid.innerHTML = state.products.map(p => `
+  grid.innerHTML = filtered.map(p => `
     <div class="product-card">
       <div class="product-img-wrap">
         ${p.images && p.images.length > 0
@@ -366,7 +392,7 @@ function changeQty(id, delta) {
 }
 
 function removeFromCart(id) {
-  state.cart = state.cart.filter(i => i.id !== id);
+  state.cart = state.cart.filter(i => i.id != id);
   updateCartCount(); renderCart(); saveState();
 }
 
