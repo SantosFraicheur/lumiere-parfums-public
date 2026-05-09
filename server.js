@@ -46,12 +46,13 @@ const cloudinaryEnabled = !!(
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc : ["'self'"],
-      scriptSrc  : ["'self'", "'unsafe-inline'"],
-      styleSrc   : ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-      fontSrc    : ["'self'", 'https://fonts.gstatic.com'],
-      imgSrc     : ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com'],
-      mediaSrc   : ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com'],
+      defaultSrc    : ["'self'"],
+      scriptSrc     : ["'self'", "'unsafe-inline'"],
+      scriptSrcAttr : ["'unsafe-inline'"],
+      styleSrc      : ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc       : ["'self'", 'https://fonts.gstatic.com'],
+      imgSrc        : ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com'],
+      mediaSrc      : ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com'],
     },
   },
   crossOriginEmbedderPolicy: false,
@@ -114,24 +115,15 @@ pool.on('error', (err) => {
 });
 
 (async () => {
-  const MAX_RETRIES = 10;
-  const RETRY_DELAY_MS = 3000;
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      const client = await pool.connect();
-      console.log('Connecté à PostgreSQL');
-      client.release();
-      await initTables();
-      await initAdminPassword();
-      return;
-    } catch (err) {
-      console.error(`Connexion PostgreSQL échouée (tentative ${attempt}/${MAX_RETRIES}) :`, err.message);
-      if (attempt === MAX_RETRIES) {
-        console.error('Impossible de se connecter à PostgreSQL après plusieurs tentatives. Arrêt.');
-        process.exit(1);
-      }
-      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
-    }
+  try {
+    const client = await pool.connect();
+    console.log('Connecté à PostgreSQL');
+    client.release();
+    await initTables();
+    await initAdminPassword();
+  } catch (err) {
+    console.error('Connexion PostgreSQL échouée :', err.message);
+    process.exit(1);
   }
 })();
 
