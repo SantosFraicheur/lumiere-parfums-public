@@ -1,7 +1,7 @@
 // ============================================================
 //  LUMIÈRE — Serveur Backend (Node.js + Express + PostgreSQL)
 //  Stockage fichiers : Cloudinary
-//  Production-ready pour Render
+//  Production-ready pour Railway / Render
 // ============================================================
 
 const express      = require('express');
@@ -18,6 +18,9 @@ const { body, param, query, validationResult } = require('express-validator');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// ── Trust proxy (Railway / Render sont derrière un proxy) ───
+app.set('trust proxy', 1);
+
 const JWT_SECRET     = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
@@ -25,11 +28,6 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 if (!JWT_SECRET) {
   console.error('FATAL: JWT_SECRET non défini. Arrêt.');
-  process.exit(1);
-}
-
-if (!process.env.DATABASE_URL) {
-  console.error('FATAL: DATABASE_URL non défini. Vérifiez les variables Railway.');
   process.exit(1);
 }
 
@@ -98,48 +96,37 @@ const apiLimiter = rateLimit({
 });
 app.use('/api/', apiLimiter);
 
-// ── Désactive le cache sur toutes les routes API ──────────────
+// ── Pas de cache sur les routes API ───────────────────────────
 app.use('/api/', (_req, res, next) => {
   res.set('Cache-Control', 'no-store');
   next();
 });
 
 // ── Fichiers statiques ────────────────────────────────────────
-app.use(express.static(path.join(__dirname, 'public'), { etag: false, lastModified: false }));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Connexion PostgreSQL ──────────────────────────────────────
-// Railway peut fournir soit DATABASE_URL, soit des variables PGHOST/PGPORT/etc.
+// Railway peut fournir DATABASE_URL ou les variables PGHOST/PGPORT/etc.
 function buildDbUrl() {
-  // 1. Essai DATABASE_URL
-  const u1 = process.env.DATABASE_URL || '';
-  if (u1.startsWith('postgres')) return u1;
+  const u = process.env.DATABASE_URL || '';
+  if (u.startsWith('postgres')) return u;
 
-  // 2. Essai DATABASE_PUBLIC_URL
-  const u2 = process.env.DATABASE_PUBLIC_URL || '';
-  if (u2.startsWith('postgres')) return u2;
-
-  // 3. Construction depuis les variables PG* individuelles (Railway les injecte automatiquement)
-  const h = process.env.PGHOST;
-  const p = process.env.PGPORT || '5432';
-  const u = process.env.PGUSER;
+  const h  = process.env.PGHOST;
+  const p  = process.env.PGPORT  || '5432';
+  const us = process.env.PGUSER;
   const pw = process.env.PGPASSWORD;
   const db = process.env.PGDATABASE;
-  if (h && u && pw && db) {
-    return `postgresql://${encodeURIComponent(u)}:${encodeURIComponent(pw)}@${h}:${p}/${db}`;
+  if (h && us && pw && db) {
+    return `postgresql://${encodeURIComponent(us)}:${encodeURIComponent(pw)}@${h}:${p}/${db}`;
   }
-
   return '';
 }
 
 const dbUrl = buildDbUrl();
-
 if (!dbUrl) {
-  console.error('FATAL: Aucune variable PostgreSQL trouvée (DATABASE_URL, DATABASE_PUBLIC_URL ou PGHOST/PGUSER/PGPASSWORD/PGDATABASE).');
+  console.error('FATAL: Aucune URL PostgreSQL valide (DATABASE_URL ou PGHOST/PGUSER/PGPASSWORD/PGDATABASE manquants).');
   process.exit(1);
 }
-
-const dbPreview = dbUrl.replace(/:\/\/[^@]+@/, '://***@');
-console.log('PostgreSQL URL utilisée :', dbPreview);
 
 const pool = new Pool({
   connectionString: dbUrl,
@@ -153,7 +140,7 @@ pool.on('error', (err) => {
   console.error('Erreur pool PostgreSQL :', err.message);
 });
 
-// ── Démarrage ─────────────────────────────────────────────────
+// ── Démarrage — HTTP d'abord, DB ensuite avec retries ────────
 app.listen(PORT, () => {
   console.log(`Serveur LUMIÈRE démarré sur le port ${PORT}`);
   if (!cloudinaryEnabled) console.warn('ATTENTION: Cloudinary non configuré — uploads désactivés');
@@ -170,9 +157,9 @@ async function connectWithRetry(attempts = 10, delayMs = 3000) {
       await initAdminPassword();
       return;
     } catch (err) {
-      console.error(`Tentative ${i}/${attempts} — PostgreSQL inaccessible : ${err.message || err.code || JSON.stringify(err)}`);
+      console.error(`Tentative ${i}/${attempts} — PostgreSQL inaccessible : ${err.message || err.code}`);
       if (i === attempts) {
-        console.error('FATAL: Impossible de se connecter à PostgreSQL après toutes les tentatives.');
+        console.error('FATAL: Impossible de joindre PostgreSQL. Arrêt.');
         process.exit(1);
       }
       await new Promise(r => setTimeout(r, delayMs));
@@ -329,7 +316,6 @@ app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 //  UPLOAD CLOUDINARY
 // ════════════════════════════════════════════════════════════
 
-// POST /api/upload  — upload admin (images produits, vidéos)
 app.post('/api/upload', authenticateAdmin, [
   body('data').notEmpty().withMessage('Données requises'),
   body('resourceType').optional().isIn(['image', 'video', 'auto']),
@@ -352,7 +338,6 @@ app.post('/api/upload', authenticateAdmin, [
   }
 });
 
-// POST /api/upload/proof  — upload preuve de paiement (client connecté)
 app.post('/api/upload/proof', authenticateUser, [
   body('data').notEmpty().withMessage('Données requises'),
 ], validate, async (req, res) => {
@@ -412,10 +397,10 @@ app.post('/api/login', authLimiter, [
       [email]
     );
     if (rows.length === 0) return res.status(401).json({ error: 'Identifiants incorrects' });
-    const user    = rows[0];
-    const stored  = user.hash;
+    const user     = rows[0];
+    const stored   = user.hash;
     const isBcrypt = stored && stored.startsWith('$2');
-    const valid   = isBcrypt
+    const valid    = isBcrypt
       ? await bcrypt.compare(password, stored)
       : password === stored;
     if (!valid) return res.status(401).json({ error: 'Identifiants incorrects' });
@@ -769,5 +754,3 @@ app.get('/api/customers', authenticateAdmin, async (_req, res) => {
 app.get('*', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
-
-
