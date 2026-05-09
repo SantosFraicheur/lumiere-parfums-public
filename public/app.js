@@ -300,9 +300,9 @@ function renderProducts() {
 //  PANIER
 // ════════════════════════════════════════════════════════════
 function addToCart(productId) {
-  const prod = state.products.find(p => p.id === productId);
+  const prod = state.products.find(p => p.id == productId);
   if (!prod) return;
-  const existing = state.cart.find(i => i.id === productId);
+  const existing = state.cart.find(i => i.id == productId);
   if (existing) existing.qty++;
   else state.cart.push({ ...prod, qty: 1 });
   saveState(); updateCartCount();
@@ -358,10 +358,10 @@ function renderCart() {
 }
 
 function changeQty(id, delta) {
-  const item = state.cart.find(i => i.id === id);
+  const item = state.cart.find(i => i.id == id);
   if (!item) return;
   item.qty += delta;
-  if (item.qty <= 0) state.cart = state.cart.filter(i => i.id !== id);
+  if (item.qty <= 0) state.cart = state.cart.filter(i => i.id != id);
   updateCartCount(); renderCart(); saveState();
 }
 
@@ -831,7 +831,7 @@ async function saveProduct() {
 }
 
 function openEditProduct(id) {
-  const p = state.products.find(pr => pr.id === id);
+  const p = state.products.find(pr => pr.id == id);
   if (!p) return;
   state.currentEditProductId = id;
   editProdFiles = [];
@@ -846,7 +846,7 @@ function openEditProduct(id) {
     const img  = document.createElement('img'); img.src = url;
     const btn  = document.createElement('button'); btn.className = 'remove-img'; btn.textContent = '✕';
     btn.onclick = () => {
-      const prod = state.products.find(pr => pr.id === id);
+      const prod = state.products.find(pr => pr.id == id);
       if (prod) { prod.images.splice(i, 1); openEditProduct(id); }
     };
     item.appendChild(img); item.appendChild(btn); grid.appendChild(item);
@@ -873,7 +873,7 @@ function handleEditImages(e) {
 
 async function saveEditProduct() {
   const id = state.currentEditProductId;
-  const p  = state.products.find(pr => pr.id === id);
+  const p  = state.products.find(pr => pr.id == id);
   let existingImages = p ? [...(p.images || [])] : [];
 
   if (editProdFiles.length > 0) {
