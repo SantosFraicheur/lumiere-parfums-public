@@ -72,7 +72,7 @@ app.use(cors({
   credentials: true,
 }));
 
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({ limit: '600mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 const authLimiter = rateLimit({
@@ -296,9 +296,12 @@ function genOrderId() {
   return 'CMD-' + ts.slice(-4) + rand;
 }
 function genTrackingCode() {
-  const ts   = Date.now().toString(36).toUpperCase();
-  const rand = Math.floor(Math.random() * 9999).toString().padStart(4, '0');
-  return 'LUM-' + ts.slice(-4) + rand;
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = 'LUM-';
+  for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  code += '-';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code; // ex: LUM-K3MX-A7B2C3
 }
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
