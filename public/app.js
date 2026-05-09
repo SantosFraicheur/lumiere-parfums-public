@@ -993,7 +993,7 @@ async function uploadVideo() {
   if (!file)  { showToast('Fichier vidéo requis', 'error'); return; }
 
   // Vérification taille fichier
-  const maxMB = 50;
+  const maxMB = 400;
   if (file.size > maxMB * 1024 * 1024) {
     showToast('Fichier trop lourd (max ' + maxMB + ' Mo)', 'error'); return;
   }
