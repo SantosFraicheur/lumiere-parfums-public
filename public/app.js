@@ -3,6 +3,25 @@
 //  Stockage fichiers : Cloudinary via /api/upload
 // ============================================================
 
+// ── Icônes SVG inline (remplace tous les emojis) ─────────────
+const SVG = {
+  user:     `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+  trash:    `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`,
+  perfume:  `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v2H9z"/><path d="M10 5v2"/><path d="M14 5v2"/><rect x="7" y="7" width="10" height="14" rx="2"/><path d="M10 11h4"/></svg>`,
+  check:    `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+  clock:    `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  truck:    `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>`,
+  package:  `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`,
+  loader:   `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>`,
+  circleX:  `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+  circleOk: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+};
+
+// ── Style spin ─────────────────────────────────────────────────
+const _spinStyle = document.createElement('style');
+_spinStyle.textContent = '@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';
+document.head.appendChild(_spinStyle);
+
 // ── État global ───────────────────────────────────────────────
 let state = {
   currentUser    : null,
@@ -25,9 +44,6 @@ let newProdFiles  = [];
 let editProdFiles = [];
 
 // ── Helpers ───────────────────────────────────────────────────
-function genId()       { return 'CMD-' + Date.now().toString().slice(-6); }
-function genTracking() { return 'LUM-' + Date.now().toString().slice(-6); }
-
 function escHtml(str) {
   if (!str) return '';
   return String(str)
@@ -89,7 +105,6 @@ window.onload = () => {
 //  UPLOAD CLOUDINARY
 // ════════════════════════════════════════════════════════════
 
-// Lit un fichier en base64 (data URI)
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
@@ -99,7 +114,6 @@ function readFileAsDataUrl(file) {
   });
 }
 
-// Envoie un fichier (data URI) au serveur → Cloudinary → URL permanente
 async function uploadToCloud(dataUri, resourceType = 'auto', token = null) {
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = 'Bearer ' + token;
@@ -133,7 +147,7 @@ function showPage(name) {
     return showPage('auth');
   }
   if (name === 'tracking' && !state.currentUser) {
-    showToast('Connexion requise', 'error');
+    showToast('Veuillez vous connecter pour voir vos commandes', 'error');
     return showPage('auth');
   }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -141,7 +155,8 @@ function showPage(name) {
   if (page) page.classList.add('active');
   if (name === 'boutique') renderProducts();
   if (name === 'cart')     renderCart();
-  if (name === 'tracking') renderTracking();
+  if (name === 'tracking') { listenOrders(); renderTracking(); }
+  if (name === 'payment')  renderPayment();
 }
 
 function requireAuth(callback) {
@@ -216,13 +231,15 @@ function updateNavUser() {
   const sec = document.getElementById('nav-user-section');
   if (state.currentUser) {
     sec.innerHTML = `
-      <span style="color:var(--gold);font-size:12px;letter-spacing:1px">
-        👤 ${escHtml(state.currentUser.name.split(' ')[0])}
+      <span style="color:var(--gold);font-size:12px;letter-spacing:1px;display:inline-flex;align-items:center;gap:6px">
+        ${SVG.user} ${escHtml(state.currentUser.name.split(' ')[0])}
       </span>
       &nbsp;<button class="btn-nav" onclick="logout()">Déconnexion</button>`;
   } else {
     sec.innerHTML = `<button class="btn-nav" onclick="showPage('auth')">Connexion</button>`;
   }
+  updateMobileMenuAuth();
+  updateCartCount();
 }
 
 function logout() {
@@ -246,12 +263,16 @@ async function listenProducts() {
 function renderProducts() {
   const grid = document.getElementById('products-grid');
   if (!grid) return;
+  if (!state.products.length) {
+    grid.innerHTML = `<div style="text-align:center;padding:80px;color:var(--text-dim);font-family:'Cormorant Garamond',serif;font-size:24px">La collection arrive bientôt…</div>`;
+    return;
+  }
   grid.innerHTML = state.products.map(p => `
     <div class="product-card">
       <div class="product-img-wrap">
         ${p.images && p.images.length > 0
-          ? `<img src="${p.images[0]}" alt="${escHtml(p.name)}">`
-          : `<div class="product-img-placeholder"><span class="icon">${p.emoji || '🌸'}</span><span>${escHtml(p.category)}</span></div>`}
+          ? `<img src="${escHtml(p.images[0])}" alt="${escHtml(p.name)}">`
+          : `<div class="product-img-placeholder">${SVG.perfume}<span>${escHtml(p.category)}</span></div>`}
       </div>
       <div class="product-info">
         <div class="product-tag">${escHtml(p.category)} — ${escHtml(p.quantite)}</div>
@@ -274,7 +295,7 @@ function addToCart(productId) {
   if (existing) existing.qty++;
   else state.cart.push({ ...prod, qty: 1 });
   saveState(); updateCartCount();
-  showToast(escHtml(prod.name) + ' ajouté au panier ✓', 'success');
+  showToast(escHtml(prod.name) + ' ajouté au panier', 'success');
 }
 
 function updateCartCount() {
@@ -296,8 +317,8 @@ function renderCart() {
     <div class="cart-item">
       <div class="cart-item-img">
         ${item.images && item.images.length > 0
-          ? `<img src="${item.images[0]}" alt="${escHtml(item.name)}">`
-          : item.emoji || '🌸'}
+          ? `<img src="${escHtml(item.images[0])}" alt="${escHtml(item.name)}">`
+          : SVG.perfume}
       </div>
       <div class="cart-item-info">
         <div class="cart-item-name">${escHtml(item.name)}</div>
@@ -311,7 +332,7 @@ function renderCart() {
       <span style="color:var(--gold);font-family:'Cormorant Garamond',serif;font-size:20px;min-width:120px;text-align:right">
         ${(item.price * item.qty).toLocaleString('fr-FR')} $
       </span>
-      <button class="remove-btn" onclick="removeFromCart(${item.id})">🗑</button>
+      <button class="remove-btn" onclick="removeFromCart(${item.id})">${SVG.trash}</button>
     </div>
   `).join('') + `
     <div class="cart-total">
@@ -339,15 +360,23 @@ function removeFromCart(id) {
 function goToPayment() {
   if (state.cart.length === 0) { showToast('Panier vide', 'error'); return; }
   if (!state.currentUser) { showToast('Connexion requise', 'warning'); showPage('auth'); return; }
-  renderPayment(); showPage('payment');
+  showPage('payment');
 }
 
 // ════════════════════════════════════════════════════════════
 //  PAIEMENT
 // ════════════════════════════════════════════════════════════
-function renderPayment() {
-  const total   = state.cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const s       = state.settings || {};
+async function renderPayment() {
+  const total = state.cart.reduce((s, i) => s + i.price * i.qty, 0);
+
+  // Re-fetch les paramètres en direct pour éviter le problème de race condition
+  try {
+    const fresh = await fetch('/api/settings').then(r => r.json());
+    state.settings = fresh;
+  } catch (_) {}
+
+  const s = state.settings || {};
+
   document.getElementById('payment-summary').innerHTML = `
     <h3 style="font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--cream);margin-bottom:16px">Récapitulatif</h3>
     ${state.cart.map(i => `
@@ -359,15 +388,37 @@ function renderPayment() {
       <span>Total à Virer</span>
       <span>${total.toLocaleString('fr-FR')} $</span>
     </div>`;
+
   if (state.currentUser) {
     document.getElementById('delivery-address').value = state.currentUser.address || '';
   }
-  document.querySelector('.payment-info-box').innerHTML = `
-    <h3>Coordonnées Bancaires</h3>
-    <div class="bank-detail"><span class="bank-label">Banque</span><span class="bank-value">${escHtml(s.bankName    || 'Non défini')}</span></div>
-    <div class="bank-detail"><span class="bank-label">Numéro de Compte</span><span class="bank-value">${escHtml(s.bankAccount || 'Non défini')}</span></div>
-    <div class="bank-detail"><span class="bank-label">Titulaire</span><span class="bank-value">${escHtml(s.bankHolder  || 'Non défini')}</span></div>
-    <div class="bank-detail"><span class="bank-label">Mobile Money</span><span class="bank-value">${escHtml(s.bankMobile  || 'Non défini')}</span></div>`;
+
+  const hasBank = s.bankName || s.bankAccount || s.bankHolder || s.bankMobile;
+  const bankBox = document.getElementById('payment-bank-box');
+  if (hasBank) {
+    bankBox.innerHTML = `
+      <h3>Coordonnées Bancaires</h3>
+      ${s.bankName    ? `<div class="bank-detail"><span class="bank-label">Banque</span><span class="bank-value">${escHtml(s.bankName)}</span></div>` : ''}
+      ${s.bankAccount ? `<div class="bank-detail"><span class="bank-label">Numéro de Compte</span><span class="bank-value">${escHtml(s.bankAccount)}</span></div>` : ''}
+      ${s.bankHolder  ? `<div class="bank-detail"><span class="bank-label">Titulaire</span><span class="bank-value">${escHtml(s.bankHolder)}</span></div>` : ''}
+      ${s.bankMobile  ? `<div class="bank-detail"><span class="bank-label">Mobile Money</span><span class="bank-value">${escHtml(s.bankMobile)}</span></div>` : ''}`;
+  } else {
+    bankBox.innerHTML = `
+      <h3>Coordonnées Bancaires</h3>
+      <div class="bank-unconfigured">
+        Les coordonnées bancaires ne sont pas encore configurées.<br>
+        Veuillez contacter le vendeur directement pour effectuer votre paiement.
+      </div>`;
+  }
+
+  // Réinitialise la zone de preuve
+  state.proofUrl = null;
+  const nameEl = document.getElementById('proof-name');
+  if (nameEl) { nameEl.style.display = 'none'; nameEl.textContent = ''; }
+  const zone = document.getElementById('proof-zone');
+  if (zone) zone.style.borderColor = 'rgba(201,169,110,0.3)';
+  const input = document.getElementById('proof-input');
+  if (input) input.value = '';
 }
 
 // Preuve de paiement : upload immédiat vers Cloudinary
@@ -376,52 +427,71 @@ async function handleProofUpload(e) {
   if (!file) return;
   const nameEl = document.getElementById('proof-name');
   const zone   = document.getElementById('proof-zone');
-  nameEl.textContent = '⏳ Envoi en cours…';
+  nameEl.innerHTML  = SVG.loader + ' &nbsp;Envoi en cours…';
   nameEl.style.display = 'block';
+  nameEl.style.color   = 'var(--gold)';
   zone.style.borderColor = 'var(--gold)';
   try {
     const dataUri      = await readFileAsDataUrl(file);
     const url          = await uploadProofToCloud(dataUri);
     state.proofUrl     = url;
-    nameEl.textContent       = '✓ Preuve envoyée';
-    zone.style.borderColor   = 'var(--green)';
+    nameEl.innerHTML   = SVG.circleOk + ' &nbsp;Preuve envoyée avec succès';
+    nameEl.style.color = 'var(--green)';
+    zone.style.borderColor = 'var(--green)';
   } catch (err) {
     state.proofUrl     = null;
-    nameEl.textContent       = '✗ Erreur : ' + err.message;
-    zone.style.borderColor   = 'var(--red)';
+    nameEl.innerHTML   = SVG.circleX + ' &nbsp;Erreur : ' + escHtml(err.message);
+    nameEl.style.color = 'var(--red)';
+    zone.style.borderColor = 'var(--red)';
   }
 }
 
 async function submitOrder() {
   if (!state.proofUrl) { showToast('Ajoutez une preuve de paiement', 'error'); return; }
   const address = document.getElementById('delivery-address').value.trim();
-  if (!address) { showToast('Adresse requise', 'error'); return; }
+  if (!address) { showToast('Adresse de livraison requise', 'error'); return; }
+  if (state.cart.length === 0) { showToast('Panier vide', 'error'); return; }
+
   const total = state.cart.reduce((s, i) => s + i.price * i.qty, 0);
   const order = {
-    id          : genId(),
-    customer    : state.currentUser.name,
-    items       : state.cart,
+    customer : state.currentUser.name,
+    items    : state.cart,
     total,
-    proofUrl    : state.proofUrl,
-    trackingCode: genTracking(),
+    proofUrl : state.proofUrl,
     address,
   };
+
+  const btn = document.querySelector('#page-payment .btn-primary.btn-full');
+  if (btn) { btn.disabled = true; btn.textContent = 'Envoi en cours…'; }
+
   try {
     const res = await fetch('/api/orders', {
       method: 'POST', headers: userHeaders(), body: JSON.stringify(order)
     });
+    const data = await res.json();
     if (!res.ok) {
-      const d = await res.json();
-      if (res.status === 401) { showToast('Session expirée', 'error'); logout(); return; }
-      showToast(d.error || 'Erreur commande', 'error'); return;
+      if (res.status === 401) { showToast('Session expirée, reconnectez-vous', 'error'); logout(); return; }
+      showToast(data.error || 'Erreur commande', 'error');
+      if (btn) { btn.disabled = false; btn.textContent = 'Soumettre la Commande'; }
+      return;
     }
+    // Succès : vider le panier et afficher l'écran de confirmation
     state.cart     = [];
     state.proofUrl = null;
     updateCartCount(); saveState();
-    showPage('tracking');
-    showToast('Commande envoyée ✔', 'success');
+    showOrderConfirmation(data.trackingCode);
     listenOrders();
-  } catch { showToast('Erreur commande', 'error'); }
+  } catch {
+    showToast('Erreur réseau', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Soumettre la Commande'; }
+  }
+}
+
+// ── Écran de confirmation post-commande ───────────────────────
+function showOrderConfirmation(trackingCode) {
+  document.getElementById('confirm-code').textContent = trackingCode || '—';
+  showPage('confirm');
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -443,38 +513,68 @@ async function listenOrders() {
 function renderTracking() {
   if (!state.currentUser) return;
   const box    = document.getElementById('tracking-content');
+  if (!box) return;
+
   const orders = state.isAdmin
     ? state.orders
     : state.orders.filter(o => (o.userId || o.userid) === state.currentUser.email);
-  if (orders.length === 0) { box.innerHTML = `<p style="text-align:center">Aucune commande</p>`; return; }
-  const statusMap = { pending:'⏳ Paiement en attente', confirmed:'✅ Confirmé', shipping:'🚚 En livraison', delivered:'📬 Livré' };
-  box.innerHTML = orders.map(o => `
-    <div style="margin-bottom:20px;text-align:center;padding:20px;background:var(--dark-2);border-radius:10px">
-      <h3 style="color:var(--gold)">${escHtml(o.trackingCode || o.trackingcode)}</h3>
-      <p style="margin:8px 0">${(o.items||[]).map(i => escHtml(i.product_name) + ' x' + i.quantity).join(', ')}</p>
-      <p style="color:gold">${o.total.toLocaleString()} $</p>
-      <p style="margin-top:8px;font-size:16px">${statusMap[o.status] || escHtml(o.status)}</p>
-    </div>
-  `).join('');
+
+  if (orders.length === 0) {
+    box.innerHTML = `<p style="text-align:center;color:var(--text-dim);font-size:14px;padding:40px 0">Aucune commande pour le moment</p>`;
+    return;
+  }
+
+  box.innerHTML = orders.map(o => {
+    const tc     = escHtml(o.trackingCode || o.trackingcode || '—');
+    const status = o.status || 'pending';
+    const items  = (o.items || []).map(i => escHtml(i.product_name) + ' ×' + i.quantity).join(', ');
+    const { icon, label } = statusInfo(status);
+    return `
+      <div class="tracking-order-card">
+        <div class="t-code">${tc}</div>
+        <div class="t-items">${items}</div>
+        <div class="t-total">${o.total.toLocaleString('fr-FR')} $</div>
+        <div><span class="t-status ${status}">${icon} ${label}</span></div>
+      </div>`;
+  }).join('');
+}
+
+function statusInfo(status) {
+  const map = {
+    pending  : { icon: SVG.clock,   label: 'Paiement en attente' },
+    confirmed: { icon: SVG.circleOk,label: 'Confirmé' },
+    shipping : { icon: SVG.truck,   label: 'En livraison' },
+    delivered: { icon: SVG.package, label: 'Livré' },
+  };
+  return map[status] || { icon: '', label: status };
 }
 
 async function searchTracking() {
-  const code      = document.getElementById('tracking-input').value.trim();
+  const code      = document.getElementById('tracking-input').value.trim().toUpperCase();
   const resultBox = document.getElementById('tracking-result');
-  if (!code) { showToast('Entrez un code', 'error'); return; }
+  if (!code) { showToast('Entrez un code de suivi', 'error'); return; }
+  resultBox.innerHTML = `<p style="text-align:center;color:var(--text-dim)">${SVG.loader} &nbsp;Recherche…</p>`;
   try {
     const res   = await fetch('/api/orders/track?code=' + encodeURIComponent(code));
     const order = await res.json();
-    if (!res.ok) { resultBox.innerHTML = `<p style="text-align:center;color:red">Commande introuvable</p>`; return; }
-    const statusMap = { pending:'⏳ Paiement en attente', confirmed:'✅ Confirmé', shipping:'🚚 En livraison', delivered:'📬 Livré' };
+    if (!res.ok) {
+      resultBox.innerHTML = `<div style="text-align:center;padding:20px;color:var(--red)">Commande introuvable — vérifiez le code</div>`;
+      return;
+    }
+    const { icon, label } = statusInfo(order.status);
+    const items = (order.items || []).map(i => escHtml(i.product_name) + ' ×' + i.quantity).join(', ');
     resultBox.innerHTML = `
-      <div style="text-align:center;padding:20px;background:var(--dark-2);border-radius:10px">
-        <h3 style="color:var(--gold)">${escHtml(order.trackingCode || order.trackingcode)}</h3>
-        <p style="font-size:18px;margin-top:10px">${statusMap[order.status] || escHtml(order.status)}</p>
-        <p style="margin-top:10px">${(order.items||[]).map(i => escHtml(i.product_name) + ' x' + i.quantity).join(', ')}</p>
-        <p style="color:var(--gold);margin-top:10px">${order.total.toLocaleString('fr-FR')} $</p>
+      <div style="text-align:center;padding:28px;background:var(--dark-2);border:1px solid rgba(201,169,110,0.15)">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:28px;color:var(--gold);letter-spacing:3px;margin-bottom:12px">
+          ${escHtml(order.trackingCode || order.trackingcode || code)}
+        </div>
+        <div style="margin-bottom:10px;font-size:13px;color:var(--text-dim)">${items}</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--gold);margin-bottom:14px">${order.total.toLocaleString('fr-FR')} $</div>
+        <span class="t-status ${order.status}" style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;font-size:11px;letter-spacing:2px;text-transform:uppercase">
+          ${icon} ${label}
+        </span>
       </div>`;
-  } catch { showToast('Erreur recherche', 'error'); }
+  } catch { showToast('Erreur réseau', 'error'); resultBox.innerHTML = ''; }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -496,10 +596,10 @@ function loadSettings() {
 
 async function saveSettings() {
   const settings = {
-    bankName   : document.getElementById('s-bank-name').value,
-    bankAccount: document.getElementById('s-bank-account').value,
-    bankHolder : document.getElementById('s-bank-holder').value,
-    bankMobile : document.getElementById('s-bank-mobile').value,
+    bankName   : document.getElementById('s-bank-name').value.trim(),
+    bankAccount: document.getElementById('s-bank-account').value.trim(),
+    bankHolder : document.getElementById('s-bank-holder').value.trim(),
+    bankMobile : document.getElementById('s-bank-mobile').value.trim(),
   };
   try {
     const res = await fetch('/api/settings', {
@@ -507,7 +607,7 @@ async function saveSettings() {
     });
     if (!res.ok) { showToast('Erreur sauvegarde', 'error'); return; }
     state.settings = settings;
-    showToast('Paramètres sauvegardés ✔', 'success');
+    showToast('Paramètres sauvegardés', 'success');
   } catch { showToast('Erreur sauvegarde', 'error'); }
 }
 
@@ -544,6 +644,8 @@ function adminSection(name) {
   const nav = document.querySelector(`.admin-nav-item[onclick="adminSection('${name}')"]`);
   if (nav) nav.classList.add('active');
   if (name === 'settings') loadSettings();
+  if (name === 'videos') renderAdminVideos();
+  adminNavMobileCollapse();
 }
 
 // ── Dashboard ─────────────────────────────────────────────────
@@ -559,7 +661,7 @@ function renderAdminDashboard() {
     <div class="stat-card"><div class="stat-label">Confirmées</div><div class="stat-value" style="color:var(--green)">${confirmed}</div></div>
     <div class="stat-card"><div class="stat-label">Produits</div><div class="stat-value">${state.products.length}</div></div>
     <div class="stat-card"><div class="stat-label">Clients</div><div class="stat-value">${state.customers.length}</div></div>
-    <div class="stat-card"><div class="stat-label">Chiffre d'Affaires</div><div class="stat-value" style="font-size:28px">${(revenue/1000).toFixed(0)}K</div><div class="stat-sub">$ confirmé</div></div>`;
+    <div class="stat-card"><div class="stat-label">Chiffre d'Affaires</div><div class="stat-value" style="font-size:28px">${revenue >= 1000 ? (revenue/1000).toFixed(1) + 'K' : revenue.toLocaleString('fr-FR')}</div><div class="stat-sub">$ confirmé</div></div>`;
 }
 
 // ── Commandes admin ───────────────────────────────────────────
@@ -567,21 +669,23 @@ function renderAdminOrders() {
   const tbody = document.getElementById('orders-tbody');
   if (!tbody) return;
   tbody.innerHTML = state.orders.map(o => {
-    const tid = escHtml(o.id);
-    const tc  = escHtml(o.trackingCode || o.trackingcode || '');
+    const tid    = escHtml(o.id);
+    const { icon, label } = statusInfo(o.status || 'pending');
     return `
     <tr>
       <td style="color:var(--gold);font-family:'Cormorant Garamond',serif">${tid}</td>
-      <td><div>${escHtml(o.customer)}</div><div style="font-size:11px;color:var(--text-dim)">${escHtml(o.userId || o.userid || '')}</div></td>
+      <td>
+        <div>${escHtml(o.customer)}</div>
+        <div style="font-size:11px;color:var(--text-dim)">${escHtml(o.userId || o.userid || '')}</div>
+      </td>
       <td style="font-size:12px">${(o.items||[]).map(i => escHtml(i.product_name) + ' ×' + i.quantity).join('<br>')}</td>
       <td style="color:var(--gold);font-family:'Cormorant Garamond',serif">${o.total.toLocaleString('fr-FR')} $</td>
       <td>${o.proof_url
-          ? `<img class="proof-thumb" src="${o.proof_url}" onclick="viewProof('${tid}')">`
+          ? `<img class="proof-thumb" src="${escHtml(o.proof_url)}" onclick="viewProof('${tid}')" title="Voir la preuve">`
           : '<span style="color:var(--text-dim);font-size:11px">Aucune</span>'}</td>
-      <td><span class="status-badge badge-${o.status}">${
-          o.status==='pending'?'⏳ Attente':o.status==='confirmed'?'✅ Confirmé':o.status==='shipping'?'🚚 Livraison':'📬 Livré'}</span></td>
-      <td style="display:flex;gap:6px;flex-wrap:wrap">
-        ${o.status==='pending' && o.proof_url?`<button class="action-btn btn-validate" onclick="validateOrder('${tid}')">Valider</button>`:''}
+      <td><span class="status-badge badge-${o.status || 'pending'}" style="display:inline-flex;align-items:center;gap:4px">${icon} ${label}</span></td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        ${o.status === 'pending' && o.proof_url ? `<button class="action-btn btn-validate" onclick="validateOrder('${tid}')">Valider</button>` : ''}
         <button class="action-btn btn-update" onclick="openStatusModal('${tid}')">Statut</button>
         <button class="action-btn btn-danger"  onclick="deleteOrder('${tid}')">Supprimer</button>
       </td>
@@ -602,7 +706,7 @@ async function validateOrder(orderId) {
       method: 'PUT', headers: adminHeaders(), body: JSON.stringify({ status: 'confirmed' })
     });
     if (!res.ok) { showToast('Erreur validation', 'error'); return; }
-    showToast('Commande ' + orderId + ' validée !', 'success'); listenOrders();
+    showToast('Commande ' + orderId + ' validée', 'success'); listenOrders();
   } catch { showToast('Erreur validation', 'error'); }
 }
 
@@ -621,7 +725,7 @@ async function confirmStatusUpdate() {
       method: 'PUT', headers: adminHeaders(), body: JSON.stringify({ status: newStatus })
     });
     if (!res.ok) { showToast('Erreur statut', 'error'); return; }
-    closeModal('modal-status'); showToast('Statut mis à jour ✔', 'success'); listenOrders();
+    closeModal('modal-status'); showToast('Statut mis à jour', 'success'); listenOrders();
   } catch { showToast('Erreur statut', 'error'); }
 }
 
@@ -643,7 +747,7 @@ function renderAdminProducts() {
   grid.innerHTML = state.products.map(p => `
     <div class="product-admin-card">
       <div class="product-admin-img">
-        ${p.images && p.images.length > 0 ? `<img src="${p.images[0]}" alt="${escHtml(p.name)}">` : p.emoji || '🌸'}
+        ${p.images && p.images.length > 0 ? `<img src="${escHtml(p.images[0])}" alt="${escHtml(p.name)}">` : SVG.perfume}
       </div>
       <div class="product-admin-info">
         <h4>${escHtml(p.name)}</h4>
@@ -660,7 +764,6 @@ function renderAdminProducts() {
   `).join('');
 }
 
-// Sélection fichiers produit → aperçu local seulement (upload au moment de "Publier")
 function handleProductImages(e) {
   newProdFiles = Array.from(e.target.files);
   const grid = document.getElementById('img-preview-grid');
@@ -706,7 +809,11 @@ async function saveProduct() {
     if (!res.ok) { showToast('Erreur création produit', 'error'); return; }
     newProdFiles = [];
     document.getElementById('img-preview-grid').innerHTML = '';
-    showToast('Produit ajouté ✔', 'success'); listenProducts();
+    document.getElementById('prod-name').value    = '';
+    document.getElementById('prod-price').value   = '';
+    document.getElementById('prod-quantite').value = '';
+    document.getElementById('prod-desc').value    = '';
+    showToast('Produit ajouté avec succès', 'success'); listenProducts();
   } catch { showToast('Erreur création produit', 'error'); }
 }
 
@@ -743,7 +850,8 @@ function handleEditImages(e) {
       const item = document.createElement('div'); item.className = 'img-preview-item img-preview-pending';
       const img  = document.createElement('img'); img.src = ev.target.result;
       const lbl  = document.createElement('span');
-      lbl.textContent = '⏳'; lbl.style.cssText = 'position:absolute;top:4px;left:4px;background:var(--gold);color:var(--dark);font-size:10px;padding:2px 4px';
+      lbl.textContent = 'Nouveau';
+      lbl.style.cssText = 'position:absolute;top:4px;left:4px;background:var(--gold);color:var(--dark);font-size:9px;padding:2px 5px;letter-spacing:1px';
       item.appendChild(img); item.appendChild(lbl); grid.appendChild(item);
     };
     reader.readAsDataURL(file);
@@ -783,7 +891,7 @@ async function saveEditProduct() {
     if (!res.ok) { showToast('Erreur modification', 'error'); return; }
     editProdFiles = [];
     closeModal('modal-edit-product');
-    showToast('Produit mis à jour ✔', 'success'); listenProducts();
+    showToast('Produit mis à jour', 'success'); listenProducts();
   } catch { showToast('Erreur modification', 'error'); }
 }
 
@@ -834,11 +942,14 @@ async function listenVideos() {
 function renderVideos() {
   const grid = document.getElementById('videos-grid');
   if (!grid) return;
-  if (state.videos.length === 0) { grid.innerHTML = "<p style='text-align:center'>Aucune vidéo</p>"; return; }
+  if (state.videos.length === 0) {
+    grid.innerHTML = "<p style='text-align:center;color:var(--text-dim);padding:60px 0'>Aucune vidéo disponible pour le moment</p>";
+    return;
+  }
   grid.innerHTML = state.videos.map(v => `
-    <div style="background:#111;padding:15px;border-radius:10px">
-      <h3 style="margin-bottom:10px">${escHtml(v.title)}</h3>
-      <video src="${v.url}" controls style="width:100%;border-radius:8px"></video>
+    <div style="background:var(--dark-2);border:1px solid rgba(201,169,110,0.1);padding:24px">
+      <h3 style="font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--cream);margin-bottom:16px">${escHtml(v.title)}</h3>
+      <video src="${escHtml(v.url)}" controls style="width:100%;max-height:480px;background:#000"></video>
     </div>
   `).join('');
 }
@@ -846,11 +957,14 @@ function renderVideos() {
 function renderAdminVideos() {
   const box = document.getElementById('admin-videos-list');
   if (!box) return;
+  if (state.videos.length === 0) { box.innerHTML = '<p style="color:var(--text-dim);font-size:13px">Aucune vidéo publiée</p>'; return; }
   box.innerHTML = state.videos.map(v => `
-    <div style="margin-bottom:15px;padding:12px;background:var(--dark-2);border-radius:8px">
-      <strong style="color:var(--cream)">${escHtml(v.title)}</strong><br>
-      <video src="${v.url}" width="200" controls style="margin-top:8px;border-radius:6px"></video><br>
-      <button class="action-btn btn-danger" style="margin-top:8px" onclick="deleteVideo(${v.id})">Supprimer</button>
+    <div style="margin-bottom:16px;padding:16px;background:var(--dark-2);border:1px solid rgba(201,169,110,0.1);display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <div style="color:var(--cream);font-family:'Cormorant Garamond',serif;font-size:18px;margin-bottom:8px">${escHtml(v.title)}</div>
+        <video src="${escHtml(v.url)}" controls style="width:100%;max-width:300px;border-radius:4px;background:#000"></video>
+      </div>
+      <button class="action-btn btn-danger" style="flex-shrink:0" onclick="deleteVideo(${v.id})">Supprimer</button>
     </div>
   `).join('');
 }
@@ -860,10 +974,20 @@ async function uploadVideo() {
   const title     = document.getElementById('video-title').value.trim();
   const fileInput = document.getElementById('video-file');
   const file      = fileInput && fileInput.files[0];
+  const statusDiv = document.getElementById('video-upload-status');
+
   if (!title) { showToast('Titre requis', 'error'); return; }
   if (!file)  { showToast('Fichier vidéo requis', 'error'); return; }
 
+  // Vérification taille fichier
+  const maxMB = 50;
+  if (file.size > maxMB * 1024 * 1024) {
+    showToast('Fichier trop lourd (max ' + maxMB + ' Mo)', 'error'); return;
+  }
+
+  statusDiv.style.display = 'flex';
   showToast('Envoi de la vidéo en cours… (peut prendre une minute)', 'info');
+
   try {
     const dataUri = await readFileAsDataUrl(file);
     const url     = await uploadToCloud(dataUri, 'video', state.adminToken);
@@ -872,11 +996,14 @@ async function uploadVideo() {
       method: 'POST', headers: adminHeaders(),
       body: JSON.stringify({ title, url })
     });
-    if (!res.ok) { showToast('Erreur enregistrement vidéo', 'error'); return; }
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Erreur enregistrement vidéo', 'error'); statusDiv.style.display = 'none'; return; }
     document.getElementById('video-title').value = '';
     fileInput.value = '';
-    showToast('Vidéo publiée ✔', 'success'); listenVideos();
+    statusDiv.style.display = 'none';
+    showToast('Vidéo publiée avec succès', 'success'); listenVideos();
   } catch (err) {
+    statusDiv.style.display = 'none';
     showToast('Erreur upload : ' + err.message, 'error');
   }
 }
@@ -899,6 +1026,74 @@ document.addEventListener('DOMContentLoaded', () => {
     m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); })
   );
 });
+
+// ════════════════════════════════════════════════════════════
+//  MENU MOBILE — Hamburger drawer
+// ════════════════════════════════════════════════════════════
+function toggleMobileMenu() {
+  const btn     = document.getElementById('hamburger-btn');
+  const menu    = document.getElementById('mobile-menu');
+  const overlay = document.getElementById('mobile-menu-overlay');
+  const isOpen  = menu.classList.contains('open');
+  if (isOpen) {
+    closeMobileMenu();
+  } else {
+    btn.classList.add('open');
+    menu.classList.add('open');
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeMobileMenu() {
+  document.getElementById('hamburger-btn').classList.remove('open');
+  document.getElementById('mobile-menu').classList.remove('open');
+  document.getElementById('mobile-menu-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function mobileNav(page) {
+  closeMobileMenu();
+  showPage(page);
+}
+
+function mobileNavAuth(callback) {
+  closeMobileMenu();
+  if (state.currentUser) callback();
+  else { showToast('Veuillez vous connecter', 'warning'); showPage('auth'); }
+}
+
+// Mettre à jour le menu mobile quand l'état user change
+function updateMobileMenuAuth() {
+  const section = document.getElementById('mobile-menu-auth-section');
+  if (!section) return;
+  if (state.currentUser) {
+    section.innerHTML = `
+      <div style="color:var(--gold);font-size:12px;letter-spacing:1px;margin-bottom:12px">
+        ${escHtml(state.currentUser.name.split(' ')[0])}
+      </div>
+      <button class="btn-nav" style="width:100%;text-align:center" onclick="closeMobileMenu();logout()">Déconnexion</button>`;
+  } else {
+    section.innerHTML = `<button class="btn-nav" style="width:100%;text-align:center" onclick="mobileNav('auth')">Connexion</button>`;
+  }
+  // Badge panier mobile
+  const badge = document.getElementById('mobile-cart-badge');
+  if (badge) badge.textContent = state.cart.reduce((s, i) => s + i.qty, 0);
+}
+
+// ── Admin sidebar collapse on mobile ─────────────────────────
+function toggleAdminSidebar() {
+  const sidebar = document.getElementById('admin-sidebar');
+  if (sidebar) sidebar.classList.toggle('collapsed');
+}
+
+// Auto-collapse admin nav on mobile after section click
+function adminNavMobileCollapse() {
+  if (window.innerWidth <= 768) {
+    const sidebar = document.getElementById('admin-sidebar');
+    if (sidebar) sidebar.classList.add('collapsed');
+  }
+}
 
 // ════════════════════════════════════════════════════════════
 //  ADMIN ACCESS via URL hash
