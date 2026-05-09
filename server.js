@@ -18,7 +18,6 @@ const { body, param, query, validationResult } = require('express-validator');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-// ── Trust proxy (Railway / Render sont derrière un proxy) ───
 app.set('trust proxy', 1);
 
 const JWT_SECRET     = process.env.JWT_SECRET;
@@ -31,7 +30,6 @@ if (!JWT_SECRET) {
   process.exit(1);
 }
 
-// ── Cloudinary ────────────────────────────────────────────────
 cloudinary.config({
   cloud_name : process.env.CLOUDINARY_CLOUD_NAME,
   api_key    : process.env.CLOUDINARY_API_KEY,
@@ -45,12 +43,11 @@ const cloudinaryEnabled = !!(
   process.env.CLOUDINARY_API_SECRET
 );
 
-// ── Middleware sécurité ───────────────────────────────────────
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc    : ["'self'"],
-      scriptSrc     : ["'self'", "'unsafe-inline'"],
+      scriptSrc     : ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
       scriptSrcAttr : ["'unsafe-inline'"],
       styleSrc      : ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       fontSrc       : ["'self'", 'https://fonts.gstatic.com'],
@@ -61,7 +58,6 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 
-// ── CORS ──────────────────────────────────────────────────────
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
   : [];
@@ -76,10 +72,9 @@ app.use(cors({
   credentials: true,
 }));
 
-app.use(express.json({ limit: '20mb' }));
+app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// ── Rate limiting ─────────────────────────────────────────────
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -96,21 +91,16 @@ const apiLimiter = rateLimit({
 });
 app.use('/api/', apiLimiter);
 
-// ── Pas de cache sur les routes API ───────────────────────────
 app.use('/api/', (_req, res, next) => {
   res.set('Cache-Control', 'no-store');
   next();
 });
 
-// ── Fichiers statiques ────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ── Connexion PostgreSQL ──────────────────────────────────────
-// Railway peut fournir DATABASE_URL ou les variables PGHOST/PGPORT/etc.
 function buildDbUrl() {
   const u = process.env.DATABASE_URL || '';
   if (u.startsWith('postgres')) return u;
-
   const h  = process.env.PGHOST;
   const p  = process.env.PGPORT  || '5432';
   const us = process.env.PGUSER;
@@ -124,7 +114,7 @@ function buildDbUrl() {
 
 const dbUrl = buildDbUrl();
 if (!dbUrl) {
-  console.error('FATAL: Aucune URL PostgreSQL valide (DATABASE_URL ou PGHOST/PGUSER/PGPASSWORD/PGDATABASE manquants).');
+  console.error('FATAL: Aucune URL PostgreSQL valide.');
   process.exit(1);
 }
 
@@ -140,7 +130,6 @@ pool.on('error', (err) => {
   console.error('Erreur pool PostgreSQL :', err.message);
 });
 
-// ── Démarrage — HTTP d'abord, DB ensuite avec retries ────────
 app.listen(PORT, () => {
   console.log(`Serveur LUMIÈRE démarré sur le port ${PORT}`);
   if (!cloudinaryEnabled) console.warn('ATTENTION: Cloudinary non configuré — uploads désactivés');
@@ -167,7 +156,6 @@ async function connectWithRetry(attempts = 10, delayMs = 3000) {
   }
 }
 
-// ── Création automatique des tables ──────────────────────────
 async function initDatabase() {
   try {
     await pool.query(`
@@ -243,7 +231,6 @@ async function initDatabase() {
   }
 }
 
-// ── Initialise le mot de passe admin ─────────────────────────
 async function initAdminPassword() {
   if (!ADMIN_USERNAME || !ADMIN_PASSWORD) return;
   try {
@@ -270,7 +257,6 @@ async function initAdminPassword() {
   }
 }
 
-// ── Helpers ───────────────────────────────────────────────────
 function validate(req, res, next) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
@@ -303,7 +289,18 @@ function authenticateUser(req, res, next) {
   }
 }
 
-// ── Health check ──────────────────────────────────────────────
+// ── Générateur d'identifiants unique côté serveur ─────────────
+function genOrderId() {
+  const ts   = Date.now().toString(36).toUpperCase();
+  const rand = Math.floor(Math.random() * 9999).toString().padStart(4, '0');
+  return 'CMD-' + ts.slice(-4) + rand;
+}
+function genTrackingCode() {
+  const ts   = Date.now().toString(36).toUpperCase();
+  const rand = Math.floor(Math.random() * 9999).toString().padStart(4, '0');
+  return 'LUM-' + ts.slice(-4) + rand;
+}
+
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
 
@@ -329,7 +326,7 @@ app.post('/api/upload', authenticateAdmin, [
     res.json({ url: result.secure_url, publicId: result.public_id });
   } catch (err) {
     console.error('Cloudinary upload error:', err.message);
-    res.status(500).json({ error: 'Erreur upload fichier' });
+    res.status(500).json({ error: 'Erreur upload fichier : ' + err.message });
   }
 });
 
@@ -555,28 +552,31 @@ app.get('/api/orders', authenticateAdmin, async (_req, res) => {
   }
 });
 
+// POST /api/orders — IDs générés côté serveur (plus de collision possible)
 app.post('/api/orders', authenticateUser, [
-  body('id').trim().notEmpty().isLength({ max: 50 }),
   body('customer').trim().notEmpty().isLength({ max: 255 }),
   body('total').isInt({ min: 0 }),
   body('address').trim().notEmpty().isLength({ max: 1000 }),
   body('items').isArray({ min: 1 }),
+  body('proofUrl').notEmpty().withMessage('Preuve de paiement requise'),
 ], validate, async (req, res) => {
-  const { id, customer, items = [], total, address, trackingCode, proofUrl } = req.body;
-  const userId = req.user.email;
+  const { customer, items = [], total, address, proofUrl } = req.body;
+  const userId      = req.user.email;
+  const id          = genOrderId();
+  const trackingCode = genTrackingCode();
   try {
     await pool.query(
       `INSERT INTO orders (id, "userId", customer, total, status, address, "trackingCode", proof_url)
        VALUES ($1,$2,$3,$4,'pending',$5,$6,$7)`,
-      [id, userId, customer, total, address, trackingCode, proofUrl || null]
+      [id, userId, customer, total, address, trackingCode, proofUrl]
     );
     for (const item of items) {
       await pool.query(
         'INSERT INTO order_items (order_id, product_id, product_name, quantity, price) VALUES ($1,$2,$3,$4,$5)',
-        [id, item.id, item.name, item.qty, item.price]
+        [id, item.id, item.name || item.product_name, item.qty || item.quantity, item.price]
       );
     }
-    res.json({ ok: true });
+    res.json({ ok: true, id, trackingCode });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur création commande' });
