@@ -108,11 +108,16 @@ app.use('/api/', (_req, res, next) => {
 app.use(express.static(path.join(__dirname, 'public'), { etag: false, lastModified: false }));
 
 // ── Connexion PostgreSQL ──────────────────────────────────────
+const dbUrl = process.env.DATABASE_URL || '';
+const dbUrlPreview = dbUrl.substring(0, 15) + '...' + dbUrl.substring(dbUrl.lastIndexOf('@'));
+console.log('DATABASE_URL détectée :', dbUrl.startsWith('postgres') ? dbUrlPreview : `INVALIDE (commence par: "${dbUrl.substring(0,30)}")`);
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  connectionString: dbUrl,
+  ssl: { rejectUnauthorized: false },
   max: 10,
   idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
 });
 
 pool.on('error', (err) => {
@@ -136,7 +141,7 @@ async function connectWithRetry(attempts = 10, delayMs = 3000) {
       await initAdminPassword();
       return;
     } catch (err) {
-      console.error(`Tentative ${i}/${attempts} — PostgreSQL inaccessible : ${err.message}`);
+      console.error(`Tentative ${i}/${attempts} — PostgreSQL inaccessible : ${err.message || err.code || JSON.stringify(err)}`);
       if (i === attempts) {
         console.error('FATAL: Impossible de se connecter à PostgreSQL après toutes les tentatives.');
         process.exit(1);
