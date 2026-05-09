@@ -108,12 +108,33 @@ app.use('/api/', (_req, res, next) => {
 app.use(express.static(path.join(__dirname, 'public'), { etag: false, lastModified: false }));
 
 // ── Connexion PostgreSQL ──────────────────────────────────────
-// Railway fournit DATABASE_URL (interne) et DATABASE_PUBLIC_URL (externe)
-// On essaie les deux pour garantir la connexion au démarrage
-const dbUrl = process.env.DATABASE_PUBLIC_URL || process.env.DATABASE_URL || '';
+// Railway peut fournir soit DATABASE_URL, soit des variables PGHOST/PGPORT/etc.
+function buildDbUrl() {
+  // 1. Essai DATABASE_URL
+  const u1 = process.env.DATABASE_URL || '';
+  if (u1.startsWith('postgres')) return u1;
 
-if (!dbUrl.startsWith('postgres')) {
-  console.error('FATAL: Aucune URL PostgreSQL valide (DATABASE_URL / DATABASE_PUBLIC_URL).');
+  // 2. Essai DATABASE_PUBLIC_URL
+  const u2 = process.env.DATABASE_PUBLIC_URL || '';
+  if (u2.startsWith('postgres')) return u2;
+
+  // 3. Construction depuis les variables PG* individuelles (Railway les injecte automatiquement)
+  const h = process.env.PGHOST;
+  const p = process.env.PGPORT || '5432';
+  const u = process.env.PGUSER;
+  const pw = process.env.PGPASSWORD;
+  const db = process.env.PGDATABASE;
+  if (h && u && pw && db) {
+    return `postgresql://${encodeURIComponent(u)}:${encodeURIComponent(pw)}@${h}:${p}/${db}`;
+  }
+
+  return '';
+}
+
+const dbUrl = buildDbUrl();
+
+if (!dbUrl) {
+  console.error('FATAL: Aucune variable PostgreSQL trouvée (DATABASE_URL, DATABASE_PUBLIC_URL ou PGHOST/PGUSER/PGPASSWORD/PGDATABASE).');
   process.exit(1);
 }
 
