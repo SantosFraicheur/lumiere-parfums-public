@@ -28,6 +28,11 @@ if (!JWT_SECRET) {
   process.exit(1);
 }
 
+if (!process.env.DATABASE_URL) {
+  console.error('FATAL: DATABASE_URL non défini. Vérifiez les variables Railway.');
+  process.exit(1);
+}
+
 // ── Cloudinary ────────────────────────────────────────────────
 cloudinary.config({
   cloud_name : process.env.CLOUDINARY_CLOUD_NAME,
