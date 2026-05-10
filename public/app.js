@@ -338,8 +338,6 @@ function addToCart(productId) {
 function updateCartCount() {
   const count = state.cart.reduce((s, i) => s + i.qty, 0);
   document.getElementById('cart-count').textContent = count;
-  const badge = document.getElementById('bnav-cart-badge');
-  if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'flex' : 'none'; }
 }
 
 function renderCart() {
@@ -1198,16 +1196,12 @@ function updateBottomNav(activePage) {
   document.querySelectorAll('.bottom-nav-item').forEach(el => {
     el.classList.toggle('active', el.dataset.page === activePage);
   });
-  const badge = document.getElementById('bnav-cart-badge');
-  if (badge) {
-    const count = state.cart.reduce((s, i) => s + i.qty, 0);
-    badge.textContent = count;
-    badge.style.display = count > 0 ? 'flex' : 'none';
-  }
-  // Compte : icône user colorée si connecté
+  // Compte : actif sur auth / profile / tracking
   const accountItem = document.querySelector('.bottom-nav-item[data-page="auth"]');
   if (accountItem) {
-    accountItem.classList.toggle('active', activePage === 'auth' || activePage === 'tracking');
+    accountItem.classList.toggle('active',
+      activePage === 'auth' || activePage === 'profile' || activePage === 'tracking'
+    );
   }
 }
 
@@ -1287,6 +1281,7 @@ if (location.hash === '#admin') showPage('admin-login');
 
 const adminLink = document.createElement('a');
 adminLink.href = '#admin';
+adminLink.className = 'admin-secret-link';
 adminLink.style.cssText = 'position:fixed;bottom:16px;right:16px;color:rgba(201,169,110,0.3);font-size:9px;letter-spacing:2px;text-decoration:none;text-transform:uppercase;transition:color 0.3s;z-index:999';
 adminLink.textContent = 'Admin';
 adminLink.addEventListener('mouseenter', () => adminLink.style.color = 'rgba(201,169,110,0.8)');
