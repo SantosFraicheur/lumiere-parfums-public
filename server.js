@@ -412,6 +412,40 @@ app.post('/api/login', authLimiter, [
 });
 
 
+// ── Modifier le profil (nom) ──────────────────────────────────
+app.patch('/api/auth/profile', authenticateUser, [
+  body('name').trim().notEmpty().withMessage('Nom requis'),
+], validate, async (req, res) => {
+  const { name } = req.body;
+  try {
+    await pool.query('UPDATE customers SET name=$1 WHERE email=$2', [name, req.user.email]);
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// ── Changer le mot de passe ────────────────────────────────────
+app.patch('/api/auth/password', authenticateUser, [
+  body('currentPassword').notEmpty().withMessage('Mot de passe actuel requis'),
+  body('newPassword').isLength({ min: 6 }).withMessage('Nouveau mot de passe : 6 caractères minimum'),
+], validate, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  try {
+    const { rows } = await pool.query('SELECT password FROM customers WHERE email=$1', [req.user.email]);
+    if (!rows.length) return res.status(404).json({ error: 'Utilisateur introuvable' });
+    const valid = await bcrypt.compare(currentPassword, rows[0].password);
+    if (!valid) return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
+    const hash = await bcrypt.hash(newPassword, 12);
+    await pool.query('UPDATE customers SET password=$1 WHERE email=$2', [hash, req.user.email]);
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
 // ════════════════════════════════════════════════════════════
 //  PRODUITS
 // ════════════════════════════════════════════════════════════
