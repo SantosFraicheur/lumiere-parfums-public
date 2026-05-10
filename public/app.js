@@ -35,7 +35,7 @@ let state = {
   products       : [],
   orders         : [],
   customers      : [],
-  settings       : { bankName:'', bankAccount:'', bankHolder:'', bankMobile:'' },
+  settings       : { bankName:'', bankAccount:'', bankHolder:'', },
   currentEditProductId : null,
   currentUpdateOrderId : null,
 };
