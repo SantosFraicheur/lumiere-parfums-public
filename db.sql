@@ -7,8 +7,8 @@
 CREATE TABLE IF NOT EXISTS customers (
   email      VARCHAR(255) PRIMARY KEY,
   name       VARCHAR(255) NOT NULL,
-  phone      VARCHAR(50),
-  address    TEXT,
+  phone      VARCHAR(50) NOT NULL,
+  address    TEXT NOT NULL,
   password   VARCHAR(255) NOT NULL,
   created_at TIMESTAMPTZ  DEFAULT NOW()
 );
@@ -17,8 +17,8 @@ CREATE TABLE IF NOT EXISTS products (
   id          BIGINT       PRIMARY KEY,
   name        VARCHAR(255) NOT NULL,
   price       INTEGER      NOT NULL,
-  category    VARCHAR(100),
-  quantite    VARCHAR(100),
+  category    VARCHAR(100) NOT NULL,
+  quantite    VARCHAR(100) NOT NULL,
   description TEXT,
   created_at  TIMESTAMPTZ  DEFAULT NOW()
 );
@@ -55,10 +55,9 @@ CREATE TABLE IF NOT EXISTS order_items (
 
 CREATE TABLE IF NOT EXISTS settings (
   id            INTEGER PRIMARY KEY DEFAULT 1,
-  "bankName"    VARCHAR(255),
-  "bankAccount" VARCHAR(255),
-  "bankHolder"  VARCHAR(255),
-  "bankMobile"  VARCHAR(50),
+  "bankName"    VARCHAR(255) NOT NULL,
+  "bankAccount" VARCHAR(255) NOT NULL,
+  "bankHolder"  VARCHAR(255) NOT NULL,
   CONSTRAINT settings_single_row CHECK (id = 1)
 );
 
