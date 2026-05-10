@@ -92,6 +92,7 @@ function adminHeaders() {
 // ── Init ──────────────────────────────────────────────────────
 window.onload = () => {
   loadState();
+  applyI18n();
   listenProducts();
   listenOrders();
   listenSettings();
@@ -142,12 +143,8 @@ async function uploadProofToCloud(dataUri) {
 //  NAVIGATION
 // ════════════════════════════════════════════════════════════
 function showPage(name) {
-  if (name === 'payment' && !state.currentUser) {
-    showToast('Connexion requise pour payer', 'error');
-    return showPage('auth');
-  }
-  if (name === 'tracking' && !state.currentUser) {
-    showToast('Veuillez vous connecter pour voir vos commandes', 'error');
+  if ((name === 'payment' || name === 'tracking' || name === 'profile') && !state.currentUser) {
+    showToast('Veuillez vous connecter', 'warning');
     return showPage('auth');
   }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -157,6 +154,7 @@ function showPage(name) {
   if (name === 'cart')     renderCart();
   if (name === 'tracking') { listenOrders(); renderTracking(); }
   if (name === 'payment')  renderPayment();
+  if (name === 'profile')  renderProfile();
   window.scrollTo(0, 0);
   updateBottomNav(name);
 }
@@ -233,13 +231,15 @@ function updateNavUser() {
   const sec = document.getElementById('nav-user-section');
   if (state.currentUser) {
     sec.innerHTML = `
-      <span style="color:var(--gold);font-size:12px;letter-spacing:1px;display:inline-flex;align-items:center;gap:6px">
+      <button class="btn-nav" style="display:inline-flex;align-items:center;gap:6px" onclick="showPage('profile')">
         ${SVG.user} ${escHtml(state.currentUser.name.split(' ')[0])}
-      </span>
-      &nbsp;<button class="btn-nav" onclick="logout()">Déconnexion</button>`;
+      </button>`;
   } else {
-    sec.innerHTML = `<button class="btn-nav" onclick="showPage('auth')">Connexion</button>`;
+    sec.innerHTML = `<button class="btn-nav" onclick="showPage('auth')" data-i18n="btn-login">Connexion</button>`;
   }
+  // Mobile menu : afficher/cacher lien Profil
+  const profileLink = document.getElementById('mobile-profile-link');
+  if (profileLink) profileLink.style.display = state.currentUser ? 'flex' : 'none';
   updateMobileMenuAuth();
   updateCartCount();
   // Bottom nav : label du bouton compte
@@ -249,7 +249,7 @@ function updateNavUser() {
 
 // Bouton compte de la bottom nav
 function bnav_account() {
-  if (state.currentUser) showPage('tracking');
+  if (state.currentUser) showPage('profile');
   else showPage('auth');
 }
 
@@ -551,12 +551,19 @@ async function listenOrders() {
 
 function renderTracking() {
   if (!state.currentUser) return;
-  const box    = document.getElementById('tracking-content');
+  const box = document.getElementById('tracking-content');
   if (!box) return;
 
+  // Réinitialise le champ de recherche à chaque ouverture (pas d'auto-remplissage)
+  const inp = document.getElementById('tracking-input');
+  if (inp) { inp.value = ''; }
+  const resultBox = document.getElementById('tracking-result');
+  if (resultBox) resultBox.innerHTML = '';
+
+  // Le serveur /api/orders/me retourne déjà uniquement les commandes du client connecté
   const orders = state.isAdmin
     ? state.orders
-    : state.orders.filter(o => (o.userId || o.userid) === state.currentUser.email);
+    : state.orders;
 
   if (orders.length === 0) {
     box.innerHTML = `<p style="text-align:center;color:var(--text-dim);font-size:14px;padding:40px 0">Aucune commande pour le moment</p>`;
@@ -1065,6 +1072,124 @@ document.addEventListener('DOMContentLoaded', () => {
     m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); })
   );
 });
+
+// ════════════════════════════════════════════════════════════
+//  PAGE PROFIL
+// ════════════════════════════════════════════════════════════
+function renderProfile() {
+  if (!state.currentUser) return;
+  const u = state.currentUser;
+  const initials = u.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const el = id => document.getElementById(id);
+  if (el('profile-avatar'))       el('profile-avatar').textContent = initials;
+  if (el('profile-name-display')) el('profile-name-display').textContent = u.name;
+  if (el('profile-email-display'))el('profile-email-display').textContent = u.email;
+  if (el('profile-name-input'))   el('profile-name-input').value = u.name;
+  // Résumé commandes
+  const box = el('profile-orders-summary');
+  if (box) {
+    const total = state.orders.length;
+    const pending = state.orders.filter(o => o.status === 'pending').length;
+    const delivered = state.orders.filter(o => o.status === 'delivered').length;
+    box.innerHTML = total === 0
+      ? '<span>Aucune commande pour le moment</span>'
+      : `<span style="color:var(--gold);font-family:\'Cormorant Garamond\',serif;font-size:28px">${total}</span>
+         <span style="display:block;font-size:11px;letter-spacing:2px;margin-top:4px">commande${total>1?'s':''} • ${pending} en attente • ${delivered} livré${delivered>1?'s':''}</span>`;
+  }
+  // Clear password fields
+  ['profile-pwd-current','profile-pwd-new','profile-pwd-confirm'].forEach(id => {
+    const f = el(id); if (f) f.value = '';
+  });
+}
+
+async function saveProfileName() {
+  const input = document.getElementById('profile-name-input');
+  const name  = input ? input.value.trim() : '';
+  if (!name) { showToast('Le nom ne peut pas être vide', 'error'); return; }
+  try {
+    const res = await fetch('/api/auth/profile', {
+      method: 'PATCH', headers: userHeaders(),
+      body: JSON.stringify({ name }),
+    });
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erreur'); }
+    state.currentUser.name = name;
+    saveState(); updateNavUser(); renderProfile();
+    showToast('Nom mis à jour', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function saveProfilePassword() {
+  const current  = document.getElementById('profile-pwd-current')?.value || '';
+  const newPwd   = document.getElementById('profile-pwd-new')?.value || '';
+  const confirm  = document.getElementById('profile-pwd-confirm')?.value || '';
+  if (!current || !newPwd) { showToast('Remplissez tous les champs', 'error'); return; }
+  if (newPwd.length < 6)   { showToast('Mot de passe trop court (6 min)', 'error'); return; }
+  if (newPwd !== confirm)  { showToast('Les mots de passe ne correspondent pas', 'error'); return; }
+  try {
+    const res = await fetch('/api/auth/password', {
+      method: 'PATCH', headers: userHeaders(),
+      body: JSON.stringify({ currentPassword: current, newPassword: newPwd }),
+    });
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erreur'); }
+    ['profile-pwd-current','profile-pwd-new','profile-pwd-confirm'].forEach(id => {
+      const f = document.getElementById(id); if (f) f.value = '';
+    });
+    showToast('Mot de passe mis à jour', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+// ════════════════════════════════════════════════════════════
+//  I18N — TRADUCTION AUTOMATIQUE PAR LANGUE DU NAVIGATEUR
+// ════════════════════════════════════════════════════════════
+const I18N = {
+  en: {
+    'nav-home':'Home','nav-boutique':'Shop','nav-videos':'Videos','nav-cart':'Cart',
+    'nav-tracking':'My Orders','nav-profile':'My Profile','btn-login':'Sign In','btn-logout':'Sign Out',
+    'profile-edit-title':'Edit Name','profile-name-label':'Full Name','profile-save-btn':'Save',
+    'profile-pwd-title':'Change Password','profile-pwd-current':'Current Password',
+    'profile-pwd-new':'New Password','profile-pwd-confirm':'Confirm Password',
+    'profile-pwd-btn':'Update Password','profile-orders-title':'My Orders',
+    'profile-see-orders':'View All Orders',
+  },
+  ar: {
+    'nav-home':'الرئيسية','nav-boutique':'المتجر','nav-videos':'مقاطع','nav-cart':'السلة',
+    'nav-tracking':'طلباتي','nav-profile':'ملفي','btn-login':'تسجيل الدخول','btn-logout':'خروج',
+    'profile-edit-title':'تعديل الاسم','profile-name-label':'الاسم الكامل','profile-save-btn':'حفظ',
+    'profile-pwd-title':'تغيير كلمة المرور','profile-pwd-current':'كلمة المرور الحالية',
+    'profile-pwd-new':'كلمة المرور الجديدة','profile-pwd-confirm':'تأكيد كلمة المرور',
+    'profile-pwd-btn':'تحديث','profile-orders-title':'طلباتي','profile-see-orders':'عرض الكل',
+  },
+  es: {
+    'nav-home':'Inicio','nav-boutique':'Tienda','nav-videos':'Videos','nav-cart':'Carrito',
+    'nav-tracking':'Mis Pedidos','nav-profile':'Mi Perfil','btn-login':'Iniciar sesión','btn-logout':'Cerrar sesión',
+    'profile-edit-title':'Editar nombre','profile-name-label':'Nombre completo','profile-save-btn':'Guardar',
+    'profile-pwd-title':'Cambiar contraseña','profile-pwd-current':'Contraseña actual',
+    'profile-pwd-new':'Nueva contraseña','profile-pwd-confirm':'Confirmar contraseña',
+    'profile-pwd-btn':'Actualizar','profile-orders-title':'Mis pedidos','profile-see-orders':'Ver todos',
+  },
+  pt: {
+    'nav-home':'Início','nav-boutique':'Loja','nav-videos':'Vídeos','nav-cart':'Carrinho',
+    'nav-tracking':'Meus Pedidos','nav-profile':'Meu Perfil','btn-login':'Entrar','btn-logout':'Sair',
+    'profile-edit-title':'Editar nome','profile-name-label':'Nome completo','profile-save-btn':'Salvar',
+    'profile-pwd-title':'Alterar senha','profile-pwd-current':'Senha atual',
+    'profile-pwd-new':'Nova senha','profile-pwd-confirm':'Confirmar senha',
+    'profile-pwd-btn':'Atualizar','profile-orders-title':'Meus pedidos','profile-see-orders':'Ver todos',
+  },
+};
+
+function applyI18n() {
+  const lang = (navigator.language || 'fr').slice(0, 2).toLowerCase();
+  const t = I18N[lang];
+  if (!t) return; // French is default — no translation needed
+  if (lang === 'ar') {
+    document.documentElement.setAttribute('dir', 'rtl');
+    document.documentElement.setAttribute('lang', 'ar');
+  }
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    if (t[key]) el.textContent = t[key];
+  });
+}
 
 // ════════════════════════════════════════════════════════════
 //  BOTTOM NAV MOBILE
