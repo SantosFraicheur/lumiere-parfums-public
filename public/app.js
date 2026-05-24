@@ -287,7 +287,7 @@ function showPage(name) {
   const page = document.getElementById('page-' + name);
   if (page) page.classList.add('active');
   if (name === 'home') { renderSocialMedia(); updateContactEmail(); loadReviews(); }
-  if (name === 'boutique') renderProducts();
+  if (name === 'boutique') { renderProducts(); if (!state.productsLoaded) listenProducts(); }
   if (name === 'cart')     renderCart();
   if (name === 'tracking') { applyI18n(_currentLang); listenOrders(); renderTracking(); }
   if (name === 'payment')  renderPayment();
