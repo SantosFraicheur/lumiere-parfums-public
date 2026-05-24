@@ -1005,9 +1005,10 @@ function adminSection(name) {
   document.querySelectorAll('.admin-nav-item').forEach(i => i.classList.remove('active'));
   const nav = document.querySelector(`.admin-nav-item[onclick="adminSection('${name}')"]`);
   if (nav) nav.classList.add('active');
-  if (name === 'settings') { loadSettings(); loadAdminReviews(); }
+  if (name === 'settings') { loadSettings(); }
   if (name === 'videos') renderAdminVideos();
   if (name === 'newsletter') { loadSettings(); loadSubscribers(); }
+  if (name === 'reviews') loadAdminReviews();
   adminNavMobileCollapse();
 }
 
