@@ -55,9 +55,12 @@ app.use(helmet({
       imgSrc        : ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com'],
       mediaSrc      : ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com'],
       connectSrc    : ["'self'", 'https://res.cloudinary.com', 'https://cdn.jsdelivr.net'],
+      frameAncestors : ["*"],
     },
   },
   crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: false,
+  frameguard: false,
 }));
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS
