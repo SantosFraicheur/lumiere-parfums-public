@@ -960,12 +960,12 @@ app.delete('/api/videos/:id', authenticateAdmin, [
 //  AVIS CLIENTS
 // ════════════════════════════════════════════════════════════
 
-// GET /api/reviews - public, returns approved reviews
+// GET /api/reviews - public, returns all reviews (auto-approved)
 app.get('/api/reviews', async (_req, res) => {
   await migrateReviewsTable();
   try {
     const { rows } = await pool.query(
-      'SELECT id, name, product, content, rating, created_at FROM reviews WHERE approved = TRUE ORDER BY created_at DESC'
+      'SELECT id, name, product, content, rating, created_at FROM reviews ORDER BY created_at DESC'
     );
     res.json(rows);
   } catch (err) {
@@ -1009,10 +1009,10 @@ app.post('/api/reviews', [
   const { name, content, product, rating } = req.body;
   try {
     const { rows } = await pool.query(
-      'INSERT INTO reviews (name, product, content, rating) VALUES ($1,$2,$3,$4) RETURNING id',
+      'INSERT INTO reviews (name, product, content, rating, approved) VALUES ($1,$2,$3,$4,TRUE) RETURNING id',
       [name, product || '', content, rating || 5]
     );
-    res.json({ ok: true, id: rows[0].id, message: 'Merci pour votre avis ! Il sera visible après modération.' });
+    res.json({ ok: true, id: rows[0].id, message: 'Merci pour votre avis !' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur enregistrement avis' });

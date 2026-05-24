@@ -1793,7 +1793,7 @@ async function submitReview() {
       msg.style.color = 'var(--red)';
       return;
     }
-    msg.textContent = __('Merci pour votre avis ! Il sera visible après modération.');
+    msg.textContent = __('Merci pour votre avis !');
     msg.style.display = 'block';
     msg.style.color = 'var(--green)';
     document.getElementById('review-name').value = '';
@@ -1897,7 +1897,7 @@ const I18N = {
     'Merci pour votre inscription !':'Merci pour votre inscription !',
     'Soyez le premier à donner votre avis':'Soyez le premier à donner votre avis',
     'Veuillez remplir votre nom et votre avis':'Veuillez remplir votre nom et votre avis',
-    'Merci pour votre avis ! Il sera visible après modération.':'Merci pour votre avis ! Il sera visible après modération.',
+    'Merci pour votre avis !':'Merci pour votre avis !',
     'Supprimer cet avis ?':'Supprimer cet avis ?',
     'ajouté au panier':'ajouté au panier',
     'Envoyée':'Envoyée',
@@ -1948,7 +1948,7 @@ const I18N = {
     'Merci pour votre inscription !':'Thank you for subscribing!',
     'Soyez le premier à donner votre avis':'Be the first to leave a review',
     'Veuillez remplir votre nom et votre avis':'Please fill in your name and review',
-    'Merci pour votre avis ! Il sera visible après modération.':'Thank you for your review! It will be visible after moderation.',
+    'Merci pour votre avis !':'Thank you for your review!',
     'Supprimer cet avis ?':'Delete this review?',
     'ajouté au panier':'added to cart',
     'Envoyée':'Sent',
@@ -1999,7 +1999,7 @@ const I18N = {
     'Merci pour votre inscription !':'شكراً لاشتراكك!',
     'Soyez le premier à donner votre avis':'كن أول من يترك رأيه',
     'Veuillez remplir votre nom et votre avis':'الرجاء ملء اسمك ورأيك',
-    'Merci pour votre avis ! Il sera visible après modération.':'شكراً لرأيك! سيكون مرئياً بعد المراجعة.',
+    'Merci pour votre avis !':'شكراً لرأيك!',
     'Supprimer cet avis ?':'حذف هذا الرأي؟',
     'ajouté au panier':'أضيف إلى السلة',
     'Envoyée':'أرسلت',
@@ -2050,7 +2050,7 @@ const I18N = {
     'Merci pour votre inscription !':'¡Gracias por suscribirte!',
     'Soyez le premier à donner votre avis':'Sé el primero en dar tu opinión',
     'Veuillez remplir votre nom et votre avis':'Por favor complete su nombre y opinión',
-    'Merci pour votre avis ! Il sera visible après modération.':'¡Gracias por tu opinión! Será visible después de la moderación.',
+    'Merci pour votre avis !':'¡Gracias por tu opinión!',
     'Supprimer cet avis ?':'¿Eliminar esta opinión?',
     'ajouté au panier':'añadido al carrito',
     'Envoyée':'Enviada',
@@ -2101,7 +2101,7 @@ const I18N = {
     'Merci pour votre inscription !':'Obrigado por se inscrever!',
     'Soyez le premier à donner votre avis':'Seja o primeiro a dar sua opinião',
     'Veuillez remplir votre nom et votre avis':'Por favor preencha seu nome e avaliação',
-    'Merci pour votre avis ! Il sera visible après modération.':'Obrigado pela sua avaliação! Será visível após moderação.',
+    'Merci pour votre avis !':'Obrigado pela sua avaliação!',
     'Supprimer cet avis ?':'Excluir esta avaliação?',
     'ajouté au panier':'adicionado ao carrinho',
     'Envoyée':'Enviada',
@@ -2152,7 +2152,7 @@ const I18N = {
     'Merci pour votre inscription !':'Danke für Ihr Abonnement!',
     'Soyez le premier à donner votre avis':'Seien Sie der Erste, der eine Bewertung abgibt',
     'Veuillez remplir votre nom et votre avis':'Bitte füllen Sie Ihren Namen und Ihre Bewertung aus',
-    'Merci pour votre avis ! Il sera visible après modération.':'Danke für Ihre Bewertung! Sie wird nach der Moderation sichtbar.',
+    'Merci pour votre avis !':'Danke für Ihre Bewertung!',
     'Supprimer cet avis ?':'Diese Bewertung löschen?',
     'ajouté au panier':'zum Warenkorb hinzugefügt',
     'Envoyée':'Gesendet',
