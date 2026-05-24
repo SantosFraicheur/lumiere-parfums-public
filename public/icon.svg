@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="92" y1="56" x2="424" y2="448" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF4D6"/>
+      <stop offset="0.55" stop-color="#FFE4A3"/>
+      <stop offset="1" stop-color="#FFCE6C"/>
+    </linearGradient>
+    <linearGradient id="bottle" x1="176" y1="120" x2="336" y2="392" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9A5CFF"/>
+      <stop offset="1" stop-color="#FF5D8F"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="196" y1="154" x2="320" y2="362" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.78"/>
+      <stop offset="1" stop-color="#F7F0E6" stop-opacity="0.96"/>
+    </linearGradient>
+  </defs>
+  <rect x="28" y="28" width="456" height="456" rx="120" fill="url(#bg)"/>
+  <circle cx="364" cy="136" r="52" fill="#FFF8E8" opacity="0.85"/>
+  <path d="M226 114H286C292.627 114 298 119.373 298 126V154H214V126C214 119.373 219.373 114 226 114Z" fill="#6C2BD9"/>
+  <rect x="224" y="90" width="64" height="34" rx="14" fill="#3D1F7A"/>
+  <path d="M176 174C176 147.49 197.49 126 224 126H288C314.51 126 336 147.49 336 174V344C336 370.51 314.51 392 288 392H224C197.49 392 176 370.51 176 344V174Z" fill="url(#bottle)"/>
+  <path d="M202 188C202 170.327 216.327 156 234 156H278C295.673 156 310 170.327 310 188V330C310 347.673 295.673 362 278 362H234C216.327 362 202 347.673 202 330V188Z" fill="url(#glass)"/>
+  <path d="M228 214C228 210.134 231.134 207 235 207H277C280.866 207 284 210.134 284 214V235C284 238.866 280.866 242 277 242H235C231.134 242 228 238.866 228 235V214Z" fill="#FFB84D"/>
+  <path d="M214 284C232.667 270 245.667 262 256 262C266.333 262 279.333 270 298 284" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" opacity="0.7"/>
+  <path d="M166 402C194 428 232 442 256 442C280 442 318 428 346 402" stroke="#8C5BFF" stroke-width="18" stroke-linecap="round" opacity="0.25"/>
+</svg>

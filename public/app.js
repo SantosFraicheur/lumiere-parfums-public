@@ -2353,3 +2353,10 @@ adminLink.addEventListener('click', () => showPage('admin-login'));
 document.body.appendChild(adminLink);
 
 initI18n();
+
+// Register service worker for PWA
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}
