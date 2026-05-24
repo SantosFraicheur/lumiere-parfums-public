@@ -423,10 +423,27 @@ function logout() {
 let activeCategory = 'all';
 
 async function listenProducts() {
+  // Try localStorage cache first (5 min)
+  try {
+    const cached = localStorage.getItem('lumiere_products_cache');
+    if (cached) {
+      const { data, timestamp } = JSON.parse(cached);
+      if (Date.now() - timestamp < 300000 && data.length > 0) {
+        state.products = data;
+        state.productsLoaded = true;
+        renderCategoryFilter();
+        renderProducts();
+        if (state.isAdmin) renderAdminProducts();
+        return; // Don't block, refresh in background
+      }
+    }
+  } catch (_) {}
   try {
     const data = await fetch('/api/products').then(r => r.json());
     state.products = data;
     state.productsLoaded = true;
+    // Store in cache
+    try { localStorage.setItem('lumiere_products_cache', JSON.stringify({ data, timestamp: Date.now() })); } catch (_) {}
     renderCategoryFilter();
     renderProducts();
     if (state.isAdmin) renderAdminProducts();

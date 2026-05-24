@@ -501,6 +501,7 @@ app.patch('/api/auth/password', authenticateUser, [
 // ════════════════════════════════════════════════════════════
 
 app.get('/api/products', async (_req, res) => {
+  res.set('Cache-Control', 'public, max-age=60, s-maxage=300');
   try {
     const { rows: products } = await pool.query(`
       SELECT p.*, 
