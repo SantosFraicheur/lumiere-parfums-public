@@ -1214,3 +1214,8 @@ app.get('/api/customers', authenticateAdmin, async (_req, res) => {
 app.get('*', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+// ════════════════════════════════════════════════════════════
+//  Export for Vercel Serverless
+// ════════════════════════════════════════════════════════════
+module.exports = app;
