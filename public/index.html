@@ -1498,6 +1498,30 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
         <div id="admin-videos-list" style="margin-top:30px"></div>
       </div>
 
+      <!-- NEWSLETTER -->
+      <div class="admin-section" id="admin-newsletter">
+        <h2>Newsletter</h2>
+        
+        <!-- Subscriber List -->
+        <div id="newsletter-subscribers">
+          <h3 style="font-family:'Cormorant Garamond',serif;margin-bottom:16px;color:var(--gold)">Abonnés</h3>
+          <div id="subscriber-list"></div>
+        </div>
+        
+        <hr style="border-color:rgba(201,169,110,0.2);margin:40px 0">
+        
+        <!-- Send Newsletter -->
+        <div id="newsletter-send">
+          <h3 style="font-family:'Cormorant Garamond',serif;margin-bottom:16px;color:var(--gold)">Envoyer une Newsletter</h3>
+          <div style="display:grid;gap:16px;max-width:600px">
+            <input type="text" id="nl-subject" placeholder="Sujet de l'email" style="padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(201,169,110,0.3);border-radius:8px;color:var(--cream);font-size:14px">
+            <textarea id="nl-html" placeholder="Contenu HTML de l'email..." rows="12" style="padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(201,169,110,0.3);border-radius:8px;color:var(--cream);font-size:14px;resize:vertical"></textarea>
+            <button class="btn-primary" onclick="sendNewsletter()">Envoyer la Newsletter</button>
+            <div id="nl-msg" style="font-size:13px;display:none"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- SETTINGS -->
       <div class="admin-section" id="admin-settings">
         <div class="section-title">Paramètres</div>
