@@ -8,6 +8,7 @@ const express      = require('express');
 const { Pool }     = require('pg');
 const cors         = require('cors');
 const path         = require('path');
+const nodemailer   = require('nodemailer');
 const bcrypt       = require('bcryptjs');
 const jwt          = require('jsonwebtoken');
 const helmet       = require('helmet');
@@ -211,8 +212,8 @@ async function initDatabase() {
         "bankMobile"  VARCHAR(50),
         CONSTRAINT settings_single_row CHECK (id = 1)
       );
-      INSERT INTO settings (id, "bankName", "bankAccount", "bankHolder", "bankMobile")
-      VALUES (1, '', '', '', '') ON CONFLICT (id) DO NOTHING;
+      INSERT INTO settings (id, "bankName", "bankAccount", "bankHolder", "bankMobile", "smtpHost", "smtpPort", "smtpUser", "smtpPass", "smtpFrom")
+      VALUES (1, '', '', '', '', '', '587', '', '', '') ON CONFLICT (id) DO NOTHING;
       CREATE TABLE IF NOT EXISTS promo_codes (
         id             SERIAL PRIMARY KEY,
         code           VARCHAR(50) UNIQUE NOT NULL,
@@ -719,6 +720,11 @@ async function migrateSettingsColumns() {
     `ALTER TABLE settings ADD COLUMN IF NOT EXISTS "bankMobile"   VARCHAR(50)  DEFAULT ''`,
     `ALTER TABLE settings ADD COLUMN IF NOT EXISTS "siteTiktok"  VARCHAR(255) DEFAULT ''`,
     `ALTER TABLE settings ADD COLUMN IF NOT EXISTS "currency"    VARCHAR(10)  DEFAULT ''`,
+    `ALTER TABLE settings ADD COLUMN IF NOT EXISTS "smtpHost"    VARCHAR(255) DEFAULT ''`,
+    `ALTER TABLE settings ADD COLUMN IF NOT EXISTS "smtpPort"    VARCHAR(10)  DEFAULT '587'`,
+    `ALTER TABLE settings ADD COLUMN IF NOT EXISTS "smtpUser"    VARCHAR(255) DEFAULT ''`,
+    `ALTER TABLE settings ADD COLUMN IF NOT EXISTS "smtpPass"    VARCHAR(255) DEFAULT ''`,
+    `ALTER TABLE settings ADD COLUMN IF NOT EXISTS "smtpFrom"    VARCHAR(255) DEFAULT ''`,
   ];
   for (const sql of cols) {
     try { await pool.query(sql); } catch (_) {}
@@ -751,19 +757,25 @@ app.post('/api/settings', authenticateAdmin, [
   body('siteAddress').optional().trim().isLength({ max: 1000 }),
   body('siteTiktok').optional().trim().isLength({ max: 255 }),
   body('currency').optional().trim().isLength({ max: 10 }),
+  body('smtpHost').optional().trim().isLength({ max: 255 }),
+  body('smtpPort').optional().trim().isLength({ max: 10 }),
+  body('smtpUser').optional().trim().isLength({ max: 255 }),
+  body('smtpPass').optional().trim().isLength({ max: 255 }),
+  body('smtpFrom').optional().trim().isLength({ max: 255 }),
 ], validate, async (req, res) => {
   const {
     bankName, bankAccount, bankHolder, bankMobile,
     siteName, siteMotto, sitePhone, siteEmail,
     siteWhatsapp, siteInstagram, siteFacebook, siteAddress, siteTiktok,
-    currency,
+    currency, smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom,
   } = req.body;
   try {
     await migrateSettingsColumns();
     await pool.query(
       `INSERT INTO settings (id,"bankName","bankAccount","bankHolder","bankMobile",
-        "siteName","siteMotto","sitePhone","siteEmail","siteWhatsapp","siteInstagram","siteFacebook","siteAddress","siteTiktok","currency")
-       VALUES (1,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+        "siteName","siteMotto","sitePhone","siteEmail","siteWhatsapp","siteInstagram","siteFacebook","siteAddress","siteTiktok","currency",
+        "smtpHost","smtpPort","smtpUser","smtpPass","smtpFrom")
+       VALUES (1,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
        ON CONFLICT (id) DO UPDATE SET
          "bankName"=EXCLUDED."bankName","bankAccount"=EXCLUDED."bankAccount",
          "bankHolder"=EXCLUDED."bankHolder","bankMobile"=EXCLUDED."bankMobile",
@@ -771,10 +783,14 @@ app.post('/api/settings', authenticateAdmin, [
          "sitePhone"=EXCLUDED."sitePhone","siteEmail"=EXCLUDED."siteEmail",
          "siteWhatsapp"=EXCLUDED."siteWhatsapp","siteInstagram"=EXCLUDED."siteInstagram",
          "siteFacebook"=EXCLUDED."siteFacebook","siteAddress"=EXCLUDED."siteAddress",
-         "siteTiktok"=EXCLUDED."siteTiktok","currency"=EXCLUDED."currency"`,
+         "siteTiktok"=EXCLUDED."siteTiktok","currency"=EXCLUDED."currency",
+         "smtpHost"=EXCLUDED."smtpHost","smtpPort"=EXCLUDED."smtpPort",
+         "smtpUser"=EXCLUDED."smtpUser","smtpPass"=EXCLUDED."smtpPass",
+         "smtpFrom"=EXCLUDED."smtpFrom"`,
       [bankName||'', bankAccount||'', bankHolder||'', bankMobile||'',
        siteName||'', siteMotto||'', sitePhone||'', siteEmail||'',
-       siteWhatsapp||'', siteInstagram||'', siteFacebook||'', siteAddress||'', siteTiktok||'', currency||'']
+       siteWhatsapp||'', siteInstagram||'', siteFacebook||'', siteAddress||'', siteTiktok||'', currency||'',
+       smtpHost||'', smtpPort||'', smtpUser||'', smtpPass||'', smtpFrom||'']
     );
     res.json({ ok: true });
   } catch (err) {
@@ -1061,6 +1077,84 @@ app.post('/api/newsletter', [
   } catch (err) {
     console.error('Newsletter error:', err);
     res.status(500).json({ error: err.message || 'Erreur inscription newsletter' });
+  }
+});
+
+
+// GET /api/newsletter/subscribers - admin, list all subscribers
+app.get('/api/newsletter/subscribers', authenticateAdmin, async (_req, res) => {
+  await migrateNewsletterTable();
+  try {
+    const { rows } = await pool.query(
+      'SELECT id, email, created_at FROM newsletter ORDER BY created_at DESC'
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur chargement abonnés' });
+  }
+});
+
+// DELETE /api/newsletter/subscribers/:id - admin, delete subscriber
+app.delete('/api/newsletter/subscribers/:id', authenticateAdmin, [
+  param('id').isNumeric(),
+], validate, async (req, res) => {
+  await migrateNewsletterTable();
+  try {
+    await pool.query('DELETE FROM newsletter WHERE id=$1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur suppression abonné' });
+  }
+});
+
+// POST /api/newsletter/send - admin, send newsletter to all subscribers
+app.post('/api/newsletter/send', authenticateAdmin, [
+  body('subject').trim().notEmpty().isLength({ max: 255 }),
+  body('html').trim().notEmpty().isLength({ max: 50000 }),
+], validate, async (req, res) => {
+  try {
+    // Get SMTP settings
+    const { rows } = await pool.query('SELECT * FROM settings WHERE id=1');
+    const s = rows[0] || {};
+    const { smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, siteName } = s;
+    
+    if (!smtpHost || !smtpUser || !smtpPass) {
+      return res.status(400).json({ error: 'Configuration SMTP incomplète. Configurez d\'abord les paramètres SMTP dans les paramètres du site.' });
+    }
+    
+    // Get all subscribers
+    const subs = await pool.query('SELECT email FROM newsletter ORDER BY created_at DESC');
+    const emails = subs.rows.map(r => r.email).filter(Boolean);
+    
+    if (emails.length === 0) {
+      return res.status(400).json({ error: 'Aucun abonné à la newsletter.' });
+    }
+    
+    // Create transporter
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: parseInt(smtpPort || '587'),
+      secure: smtpPort === '465',
+      auth: { user: smtpUser, pass: smtpPass },
+    });
+    
+    const fromName = siteName || 'Lumière Parfums';
+    const fromEmail = smtpFrom || smtpUser;
+    
+    // Send to all subscribers (BCC for privacy)
+    await transporter.sendMail({
+      from: `"${fromName}" <${fromEmail}>`,
+      bcc: emails,
+      subject: req.body.subject,
+      html: req.body.html,
+    });
+    
+    res.json({ ok: true, sent: emails.length });
+  } catch (err) {
+    console.error('Newsletter send error:', err);
+    res.status(500).json({ error: err.message || 'Erreur envoi newsletter' });
   }
 });
 

@@ -1384,6 +1384,9 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
         <div class="admin-nav-item" onclick="adminSection('videos')">
           <i data-lucide="video"></i>Vidéos
         </div>
+        <div class="admin-nav-item" onclick="adminSection('newsletter')">
+          <i data-lucide="mail"></i>Newsletter
+        </div>
         <div class="admin-nav-item" onclick="adminSection('settings')">
           <i data-lucide="settings"></i>Paramètres
         </div>
@@ -1554,6 +1557,25 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
             <div class="form-group"><label>Mobile Money</label><input type="text" id="s-bank-mobile" placeholder="+229 97 00 00 00"></div>
           </div>
           <button class="btn-admin" onclick="saveSettings()">Enregistrer les coordonnées</button>
+        </div>
+
+        <!-- SMTP / Email -->
+        <div class="settings-card" style="margin-bottom:24px">
+          <h3 style="display:flex;align-items:center;gap:10px">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Configuration SMTP (Envoi d'emails)
+          </h3>
+          <p style="font-size:12px;color:var(--text-dim);margin-bottom:24px;line-height:1.8">Requis pour envoyer des newsletters aux abonnés. Utilisez un service SMTP comme Gmail, SendGrid, ou Mailgun.</p>
+          <div class="form-row">
+            <div class="form-group"><label>Serveur SMTP</label><input type="text" id="s-smtp-host" placeholder="smtp.gmail.com"></div>
+            <div class="form-group"><label>Port SMTP</label><input type="text" id="s-smtp-port" placeholder="587" style="max-width:100px"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Utilisateur SMTP</label><input type="text" id="s-smtp-user" placeholder="votre@email.com"></div>
+            <div class="form-group"><label>Mot de passe SMTP</label><input type="password" id="s-smtp-pass" placeholder="Mot de passe ou token"></div>
+          </div>
+          <div class="form-group"><label>Email d'envoi (From)</label><input type="email" id="s-smtp-from" placeholder="newsletter@lumiere.com"></div>
+          <button class="btn-admin" onclick="saveSettings()">Enregistrer SMTP</button>
         </div>
 
         <!-- Codes Promo -->

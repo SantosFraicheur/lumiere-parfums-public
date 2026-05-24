@@ -805,6 +805,11 @@ function loadSettings() {
   set('s-site-facebook',  s.siteFacebook);
   set('s-site-tiktok',    s.siteTiktok);
   set('s-currency',       s.currency || '€');
+  set('s-smtp-host',      s.smtpHost);
+  set('s-smtp-port',      s.smtpPort || '587');
+  set('s-smtp-user',      s.smtpUser);
+  set('s-smtp-pass',      s.smtpPass);
+  set('s-smtp-from',      s.smtpFrom);
   renderAdminPromoCodes();
 }
 
@@ -825,6 +830,11 @@ async function saveSettings() {
     siteFacebook : get('s-site-facebook'),
     siteTiktok   : get('s-site-tiktok'),
     currency     : get('s-currency') || '€',
+    smtpHost     : get('s-smtp-host'),
+    smtpPort     : get('s-smtp-port'),
+    smtpUser     : get('s-smtp-user'),
+    smtpPass     : get('s-smtp-pass'),
+    smtpFrom     : get('s-smtp-from'),
   };
   try {
     const res = await fetch('/api/settings', {
@@ -997,6 +1007,7 @@ function adminSection(name) {
   if (nav) nav.classList.add('active');
   if (name === 'settings') { loadSettings(); loadAdminReviews(); }
   if (name === 'videos') renderAdminVideos();
+  if (name === 'newsletter') { loadSettings(); loadSubscribers(); }
   adminNavMobileCollapse();
 }
 
@@ -1626,8 +1637,87 @@ async function subscribeNewsletter() {
 }
 
 // ════════════════════════════════════════════════════════════
-//  AVIS CLIENTS
+//  NEWSLETTER — Admin
 // ════════════════════════════════════════════════════════════
+
+async function loadSubscribers() {
+  const list = document.getElementById('subscriber-list');
+  if (!list) return;
+  try {
+    const res = await fetch('/api/newsletter/subscribers', { headers: adminHeaders() });
+    if (!res.ok) { list.innerHTML = '<p style="color:var(--red);font-size:13px">Erreur chargement abonnés</p>'; return; }
+    const subs = await res.json();
+    if (!subs.length) {
+      list.innerHTML = '<p style="color:var(--text-dim);font-size:13px">Aucun abonné pour le moment.</p>';
+      return;
+    }
+    list.innerHTML = '<div style="overflow-x:auto">' +
+      '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
+      '<thead>' +
+      '<tr style="border-bottom:1px solid rgba(201,169,110,0.3)">' +
+      '<th style="padding:10px;text-align:left;color:var(--gold)">Email</th>' +
+      '<th style="padding:10px;text-align:left;color:var(--gold)">Date d\'inscription</th>' +
+      '<th style="padding:10px;text-align:right;color:var(--gold)">Action</th>' +
+      '</tr>' +
+      '</thead>' +
+      '<tbody>' +
+      subs.map(s => '<tr style="border-bottom:1px solid rgba(255,255,255,0.05)">' +
+        '<td style="padding:10px">' + escHtml(s.email) + '</td>' +
+        '<td style="padding:10px;color:var(--text-dim)">' + new Date(s.created_at).toLocaleDateString() + '</td>' +
+        '<td style="padding:10px;text-align:right">' +
+        '<button onclick="deleteSubscriber(' + s.id + ')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:11px">Supprimer</button>' +
+        '</td>' +
+        '</tr>'
+      ).join('') +
+      '</tbody>' +
+      '</table>' +
+      '</div>' +
+      '<p style="color:var(--text-dim);font-size:12px;margin-top:12px">Total: ' + subs.length + ' abonné' + (subs.length > 1 ? 's' : '') + '</p>';
+  } catch {
+    list.innerHTML = '<p style="color:var(--red);font-size:13px">Erreur chargement abonnés</p>';
+  }
+}
+
+async function deleteSubscriber(id) {
+  if (!confirm('Supprimer cet abonné ?')) return;
+  try {
+    const res = await fetch('/api/newsletter/subscribers/' + id, {
+      method: 'DELETE', headers: adminHeaders()
+    });
+    if (!res.ok) { showToast('Erreur suppression', 'error'); return; }
+    showToast('Abonné supprimé', 'info');
+    loadSubscribers();
+  } catch { showToast('Erreur suppression', 'error'); }
+}
+
+async function sendNewsletter() {
+  const subject = document.getElementById('nl-subject').value.trim();
+  const html = document.getElementById('nl-html').value.trim();
+  const msg = document.getElementById('nl-msg');
+  if (!subject || !html) {
+    msg.textContent = 'Remplissez le sujet et le contenu.';
+    msg.style.display = 'block'; msg.style.color = 'var(--red)';
+    return;
+  }
+  msg.textContent = 'Envoi en cours...';
+  msg.style.display = 'block'; msg.style.color = 'var(--text-dim)';
+  try {
+    const res = await fetch('/api/newsletter/send', {
+      method: 'POST',
+      headers: Object.assign(adminHeaders(), { 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ subject, html })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    msg.textContent = 'Newsletter envoyée à ' + data.sent + ' abonné(s) !';
+    msg.style.color = 'var(--green)';
+    document.getElementById('nl-subject').value = '';
+    document.getElementById('nl-html').value = '';
+  } catch (err) {
+    msg.textContent = err.message || 'Erreur envoi newsletter';
+    msg.style.color = 'var(--red)';
+  }
+}
 
 function renderStars(rating) {
   return '★'.repeat(rating) + '☆'.repeat(5 - rating);
