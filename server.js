@@ -266,10 +266,11 @@ async function initAdminPassword() {
       console.log('Admin initialisé');
     } else {
       const stored = rows[0].password;
-      if (!stored.startsWith('$2')) {
+      // Update if stored is plaintext OR if env var password changed
+      if (!stored.startsWith('$2') || !(await bcrypt.compare(ADMIN_PASSWORD, stored))) {
         const hash = await bcrypt.hash(ADMIN_PASSWORD, 12);
         await pool.query('UPDATE admins SET password=$1 WHERE username=$2', [hash, ADMIN_USERNAME]);
-        console.log('Mot de passe admin hashé');
+        console.log('Mot de passe admin mis à jour');
       }
     }
   } catch (err) {
