@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    { "src": "/public/(.*)", "dest": "/public/$1" },
+    { "src": "/(.*)", "dest": "/server.js" }
+  ],
+  "env": {
+    "DATABASE_URL": "postgresql://postgres:qwWIHqHUcAahVJwCxWCPxoQyNkvzRhcv@shinkansen.proxy.rlwy.net:59521/railway",
+    "JWT_SECRET": "KcMH9fJc~qUxPjTF2soYCkvJQa-BhunO",
+    "JWT_EXPIRES_IN": "7d",
+    "NODE_ENV": "production",
+    "ADMIN_USERNAME": "admin_lumiere",
+    "ADMIN_PASSWORD": "lumi_ere/2025@*",
+    "CLOUDINARY_CLOUD_NAME": "dfsz84ydb",
+    "CLOUDINARY_API_KEY": "271183641968356",
+    "CLOUDINARY_API_SECRET": "PMF2VenQHTSUsKxurvL8oxLEMTM"
+  }
+}

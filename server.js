@@ -234,6 +234,15 @@ async function initDatabase() {
         url        TEXT,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+      CREATE TABLE IF NOT EXISTS reviews (
+        id         SERIAL PRIMARY KEY,
+        name       VARCHAR(255) NOT NULL,
+        product    VARCHAR(255) NOT NULL DEFAULT '',
+        content    TEXT NOT NULL,
+        rating     INTEGER DEFAULT 5,
+        approved   BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
     `);
     console.log('Tables initialisées avec succès');
   } catch (err) {
@@ -486,13 +495,18 @@ app.patch('/api/auth/password', authenticateUser, [
 
 app.get('/api/products', async (_req, res) => {
   try {
-    const { rows: products } = await pool.query('SELECT * FROM products ORDER BY created_at DESC');
+    const { rows: products } = await pool.query(`
+      SELECT p.*, 
+        COALESCE(
+          (SELECT json_agg(pi.image_url) FROM product_images pi WHERE pi.product_id = p.id),
+          '[]'::json
+        ) AS images
+      FROM products p
+      ORDER BY p.created_at DESC
+    `);
     for (const p of products) {
-      const { rows: imgs } = await pool.query(
-        'SELECT image_url FROM product_images WHERE product_id=$1', [p.id]
-      );
-      p.images = imgs.map(r => r.image_url);
-      p.desc   = p.description;
+      p.images = p.images || [];
+      p.desc = p.description;
     }
     res.json(products);
   } catch (err) {
@@ -698,6 +712,7 @@ async function migrateSettingsColumns() {
     `ALTER TABLE settings ADD COLUMN IF NOT EXISTS "siteAddress"  TEXT         DEFAULT ''`,
     `ALTER TABLE settings ADD COLUMN IF NOT EXISTS "bankMobile"   VARCHAR(50)  DEFAULT ''`,
     `ALTER TABLE settings ADD COLUMN IF NOT EXISTS "siteTiktok"  VARCHAR(255) DEFAULT ''`,
+    `ALTER TABLE settings ADD COLUMN IF NOT EXISTS "currency"    VARCHAR(10)  DEFAULT ''`,
   ];
   for (const sql of cols) {
     try { await pool.query(sql); } catch (_) {}
@@ -729,18 +744,20 @@ app.post('/api/settings', authenticateAdmin, [
   body('siteFacebook').optional().trim().isLength({ max: 255 }),
   body('siteAddress').optional().trim().isLength({ max: 1000 }),
   body('siteTiktok').optional().trim().isLength({ max: 255 }),
+  body('currency').optional().trim().isLength({ max: 10 }),
 ], validate, async (req, res) => {
   const {
     bankName, bankAccount, bankHolder, bankMobile,
     siteName, siteMotto, sitePhone, siteEmail,
     siteWhatsapp, siteInstagram, siteFacebook, siteAddress, siteTiktok,
+    currency,
   } = req.body;
   try {
     await migrateSettingsColumns();
     await pool.query(
       `INSERT INTO settings (id,"bankName","bankAccount","bankHolder","bankMobile",
-        "siteName","siteMotto","sitePhone","siteEmail","siteWhatsapp","siteInstagram","siteFacebook","siteAddress","siteTiktok")
-       VALUES (1,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+        "siteName","siteMotto","sitePhone","siteEmail","siteWhatsapp","siteInstagram","siteFacebook","siteAddress","siteTiktok","currency")
+       VALUES (1,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
        ON CONFLICT (id) DO UPDATE SET
          "bankName"=EXCLUDED."bankName","bankAccount"=EXCLUDED."bankAccount",
          "bankHolder"=EXCLUDED."bankHolder","bankMobile"=EXCLUDED."bankMobile",
@@ -748,10 +765,10 @@ app.post('/api/settings', authenticateAdmin, [
          "sitePhone"=EXCLUDED."sitePhone","siteEmail"=EXCLUDED."siteEmail",
          "siteWhatsapp"=EXCLUDED."siteWhatsapp","siteInstagram"=EXCLUDED."siteInstagram",
          "siteFacebook"=EXCLUDED."siteFacebook","siteAddress"=EXCLUDED."siteAddress",
-         "siteTiktok"=EXCLUDED."siteTiktok"`,
+         "siteTiktok"=EXCLUDED."siteTiktok","currency"=EXCLUDED."currency"`,
       [bankName||'', bankAccount||'', bankHolder||'', bankMobile||'',
        siteName||'', siteMotto||'', sitePhone||'', siteEmail||'',
-       siteWhatsapp||'', siteInstagram||'', siteFacebook||'', siteAddress||'', siteTiktok||'']
+       siteWhatsapp||'', siteInstagram||'', siteFacebook||'', siteAddress||'', siteTiktok||'', currency||'']
     );
     res.json({ ok: true });
   } catch (err) {
@@ -916,6 +933,130 @@ app.delete('/api/videos/:id', authenticateAdmin, [
   }
 });
 
+
+// ════════════════════════════════════════════════════════════
+//  AVIS CLIENTS
+// ════════════════════════════════════════════════════════════
+
+// GET /api/reviews - public, returns approved reviews
+app.get('/api/reviews', async (_req, res) => {
+  await migrateReviewsTable();
+  try {
+    const { rows } = await pool.query(
+      'SELECT id, name, product, content, rating, created_at FROM reviews WHERE approved = TRUE ORDER BY created_at DESC'
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur chargement avis' });
+  }
+});
+
+// POST /api/reviews - public, submit a review
+async function migrateNewsletterTable() {
+  try {
+    await pool.query(`CREATE TABLE IF NOT EXISTS newsletter (
+      id         SERIAL PRIMARY KEY,
+      email      VARCHAR(255) UNIQUE NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`);
+  } catch (_) {}
+}
+
+async function migrateReviewsTable() {
+  try {
+    await pool.query(`CREATE TABLE IF NOT EXISTS reviews (
+      id         SERIAL PRIMARY KEY,
+      name       VARCHAR(255) NOT NULL,
+      product    VARCHAR(255) NOT NULL DEFAULT '',
+      content    TEXT NOT NULL,
+      rating     INTEGER DEFAULT 5,
+      approved   BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`);
+  } catch (_) {}
+}
+
+app.post('/api/reviews', [
+  body('name').trim().notEmpty().isLength({ max: 255 }),
+  body('content').trim().notEmpty().isLength({ max: 1000 }),
+  body('product').optional().trim().isLength({ max: 255 }),
+  body('rating').optional().isInt({ min: 1, max: 5 }),
+], validate, async (req, res) => {
+  await migrateReviewsTable();
+  const { name, content, product, rating } = req.body;
+  try {
+    const { rows } = await pool.query(
+      'INSERT INTO reviews (name, product, content, rating) VALUES ($1,$2,$3,$4) RETURNING id',
+      [name, product || '', content, rating || 5]
+    );
+    res.json({ ok: true, id: rows[0].id, message: 'Merci pour votre avis ! Il sera visible après modération.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur enregistrement avis' });
+  }
+});
+
+// GET /api/reviews/all - admin, get ALL reviews (including unapproved)
+app.get('/api/reviews/all', authenticateAdmin, async (_req, res) => {
+  await migrateReviewsTable();
+  try {
+    const { rows } = await pool.query(
+      'SELECT * FROM reviews ORDER BY created_at DESC'
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur chargement avis' });
+  }
+});
+
+// PUT /api/reviews/:id - admin, approve/update review
+app.put('/api/reviews/:id', authenticateAdmin, [
+  param('id').isNumeric(),
+  body('approved').optional().isBoolean(),
+], validate, async (req, res) => {
+  try {
+    const { approved } = req.body;
+    if (approved !== undefined) {
+      await pool.query('UPDATE reviews SET approved=$1 WHERE id=$2', [approved, req.params.id]);
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur mise à jour avis' });
+  }
+});
+
+// DELETE /api/reviews/:id - admin, delete review
+app.delete('/api/reviews/:id', authenticateAdmin, [
+  param('id').isNumeric(),
+], validate, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM reviews WHERE id=$1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur suppression avis' });
+  }
+});
+
+// POST /api/newsletter - subscribe
+app.post('/api/newsletter', [
+  body('email').isEmail().normalizeEmail(),
+], validate, async (req, res) => {
+  await migrateNewsletterTable();
+  try {
+    await pool.query(
+      'INSERT INTO newsletter (email) VALUES ($1) ON CONFLICT (email) DO NOTHING',
+      [req.body.email]
+    );
+    res.json({ ok: true, message: __ ? __('Merci pour votre inscription !') : 'Merci pour votre inscription !' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur inscription' });
+  }
+});
 
 // ════════════════════════════════════════════════════════════
 //  ADMIN — Auth
