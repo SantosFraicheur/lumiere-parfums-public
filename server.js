@@ -234,6 +234,11 @@ async function initDatabase() {
         url        TEXT,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+      CREATE TABLE IF NOT EXISTS newsletter (
+        id         SERIAL PRIMARY KEY,
+        email      VARCHAR(255) UNIQUE NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
       CREATE TABLE IF NOT EXISTS reviews (
         id         SERIAL PRIMARY KEY,
         name       VARCHAR(255) NOT NULL,
@@ -1044,7 +1049,7 @@ app.delete('/api/reviews/:id', authenticateAdmin, [
 
 // POST /api/newsletter - subscribe
 app.post('/api/newsletter', [
-  body('email').isEmail().normalizeEmail(),
+  body('email').trim().isEmail().normalizeEmail(),
 ], validate, async (req, res) => {
   await migrateNewsletterTable();
   try {
@@ -1052,10 +1057,10 @@ app.post('/api/newsletter', [
       'INSERT INTO newsletter (email) VALUES ($1) ON CONFLICT (email) DO NOTHING',
       [req.body.email]
     );
-    res.json({ ok: true, message: __ ? __('Merci pour votre inscription !') : 'Merci pour votre inscription !' });
+    res.json({ ok: true, message: 'Merci pour votre inscription !' });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erreur inscription' });
+    console.error('Newsletter error:', err);
+    res.status(500).json({ error: err.message || 'Erreur inscription newsletter' });
   }
 });
 

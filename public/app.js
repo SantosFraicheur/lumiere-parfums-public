@@ -440,7 +440,7 @@ function renderCategoryFilter() {
   bar.innerHTML = cats.map(cat => `
     <button class="filter-btn ${activeCategory === cat ? 'active' : ''}"
       onclick="setCategory('${escHtml(cat)}')">
-      ${cat === 'all' ? __('Tous') : escHtml(cat)}
+      ${cat === 'all' ? __('Tous') : __(escHtml(cat))}
     </button>
   `).join('');
 }
@@ -1599,14 +1599,27 @@ async function subscribeNewsletter() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email })
     });
+    if (!res.ok) {
+      let errMsg = 'Erreur ' + res.status + ': ' + res.statusText;
+      try {
+        const data = await res.json();
+        if (data.error) errMsg = data.error;
+      } catch (_) {
+        try {
+          const text = await res.text();
+          if (text && text.length < 200) errMsg = text;
+        } catch (__) {}
+      }
+      throw new Error(errMsg);
+    }
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
     msg.textContent = __('Merci pour votre inscription !');
     msg.style.display = 'block';
     msg.style.color = 'var(--green)';
     document.getElementById('newsletter-email').value = '';
-  } catch (_) {
-    msg.textContent = __('Erreur');
+  } catch (err) {
+    console.error('Newsletter error:', err);
+    msg.textContent = err.message || __('Erreur');
     msg.style.display = 'block';
     msg.style.color = 'var(--red)';
   }
