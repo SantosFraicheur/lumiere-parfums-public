@@ -255,8 +255,8 @@ nav {
 }
 .filter-btn {
   background: transparent; border: 1px solid rgba(201,169,110,0.25);
-  color: var(--text-dim); padding: 10px 26px; font-family: 'Jost', sans-serif;
-  font-size: 10px; letter-spacing: 4px; text-transform: uppercase; cursor: pointer;
+  color: var(--text-dim); padding: 12px 30px; font-family: 'Jost', sans-serif;
+  font-size: 12px; letter-spacing: 4px; text-transform: uppercase; cursor: pointer;
   transition: all 0.25s;
 }
 .filter-btn:hover { border-color: var(--gold); color: var(--gold); }
@@ -266,7 +266,7 @@ nav {
 }
 @media (max-width: 768px) {
   .category-filter { padding: 16px; gap: 8px; }
-  .filter-btn { padding: 9px 20px; font-size: 9px; }
+  .filter-btn { padding: 11px 24px; font-size: 11px; }
 }
 
 .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2px; padding: 2px; }
@@ -1869,7 +1869,11 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
 
 <script src="app.js"></script>
 <script>
-  lucide.createIcons();
+  function initLucide() {
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    else setTimeout(initLucide, 200);
+  }
+  initLucide();
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/motion@12.40.0/dist/motion.js"></script>

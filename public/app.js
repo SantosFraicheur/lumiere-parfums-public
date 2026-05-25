@@ -235,6 +235,10 @@ window.onload = () => {
   updateCartCount(); updateCartBanner();
   updateNavUser();
   renderSocialMedia();
+  // Initialiser les icônes Lucide
+  if (typeof lucide !== 'undefined') {
+    try { lucide.createIcons(); } catch(e) {}
+  }
   setInterval(() => { listenProducts(); listenOrders(); listenVideos(); }, 8000);
 };
 
