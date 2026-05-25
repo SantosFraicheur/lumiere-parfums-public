@@ -828,34 +828,19 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
 
 
 /* ===== CART BANNER ===== */
-@keyframes bannerSlideUp {
-  from { opacity: 0; transform: translateY(100%); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes bannerItemIn {
-  from { opacity: 0; transform: translateX(-12px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
 .cart-banner {
   position: fixed; bottom: 62px; left: 0; right: 0; z-index: 700;
   background: rgba(20,16,12,0.98); backdrop-filter: blur(20px);
   border-top: 1px solid rgba(201,169,110,0.2);
   box-shadow: 0 -4px 30px rgba(0,0,0,0.5);
   padding: 12px 60px;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s ease;
-  transform: translateY(100%);
-  opacity: 0;
-  pointer-events: none;
 }
 .cart-banner.visible {
-  transform: translateY(0);
-  opacity: 1;
-  pointer-events: auto;
+  display: flex;
 }
 .cart-banner-items {
   display: flex;
@@ -872,7 +857,6 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
   font-size: 13px;
   color: var(--cream);
   white-space: nowrap;
-  animation: bannerItemIn 0.35s ease both;
 }
 .cart-banner-item-name {
   font-family: 'Cormorant Garamond', serif;
@@ -1818,7 +1802,7 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
 </div>
 
 <!-- ============ CART BANNER ============ -->
-<div class="cart-banner" id="cart-banner">
+<div class="cart-banner" id="cart-banner" style="display:none">
   <div class="cart-banner-items" id="cart-banner-items"></div>
   <span class="cart-banner-total" id="cart-banner-total"></span>
   <div class="cart-banner-actions">

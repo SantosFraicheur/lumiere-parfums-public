@@ -587,39 +587,52 @@ function renderCart() {
 //  BANNIÈRE PANIER
 // ════════════════════════════════════════════════════════════
 function updateCartBanner() {
-  console.log('[PANIER] updateCartBanner appelé, cart.length=', state.cart ? state.cart.length : 0);
-  try {
-  const banner = document.getElementById('cart-banner');
-  if (!banner) return;
+  var banner = document.getElementById('cart-banner');
+  if (!banner) { console.log('[PANIER] Banner element not found!'); return; }
   
   if (!state.cart || state.cart.length === 0) {
-    console.log('[PANIER] Panier vide, cache la bannière');
+    banner.style.display = 'none';
     banner.classList.remove('visible');
     return;
   }
   
-  // Build items HTML with staggered animation
-  const itemsContainer = document.getElementById('cart-banner-items');
+  // Items
+  var itemsContainer = document.getElementById('cart-banner-items');
   if (itemsContainer) {
-    const itemsHtml = state.cart.map((item, idx) => {
-      const subtotal = item.price * item.qty;
-      return '<div class="cart-banner-item" style="animation-delay:' + (idx * 0.06) + 's">' +
+    var html = '';
+    for (var i = 0; i < state.cart.length; i++) {
+      var item = state.cart[i];
+      var subtotal = Number(item.price) * Number(item.qty);
+      if (i > 0) html += '<div class="cart-banner-divider"></div>';
+      html += '<div class="cart-banner-item">' +
         '<span class="cart-banner-item-name">' + escHtml(item.name) + '</span>' +
         '<span class="cart-banner-item-price">' + subtotal.toLocaleString('fr-FR') + ' ' + getCurrency() + '</span>' +
       '</div>';
-    }).join('<div class="cart-banner-divider"></div>');
-    itemsContainer.innerHTML = itemsHtml;
+    }
+    itemsContainer.innerHTML = html;
   }
   
   // Total
-  const total = state.cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const totalEl = document.getElementById('cart-banner-total');
+  var total = 0;
+  for (var i = 0; i < state.cart.length; i++) {
+    total += Number(state.cart[i].price) * Number(state.cart[i].qty);
+  }
+  var totalEl = document.getElementById('cart-banner-total');
   if (totalEl) totalEl.textContent = total.toLocaleString('fr-FR') + ' ' + getCurrency();
   
-  console.log('[PANIER] Bannière affichée !');
+  banner.style.display = 'flex';
   banner.classList.add('visible');
-  } catch(e) { console.error('[PANIER] Erreur:', e); }
 }
+
+function closeCartBanner() {
+  var banner = document.getElementById('cart-banner');
+  if (banner) {
+    banner.style.display = 'none';
+    banner.classList.remove('visible');
+  }
+}
+
+
 
 function closeCartBanner() {
   const banner = document.getElementById('cart-banner');
