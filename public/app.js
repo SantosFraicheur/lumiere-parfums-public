@@ -583,28 +583,31 @@ function renderCart() {
 // ════════════════════════════════════════════════════════════
 function updateCartBanner() {
   const banner = document.getElementById('cart-banner');
-  const itemsContainer = document.getElementById('cart-banner-items');
-  if (!banner || !itemsContainer) return;
+  if (!banner) return;
   
-  if (state.cart.length === 0) {
+  if (!state.cart || state.cart.length === 0) {
     banner.classList.remove('visible');
     return;
   }
   
   // Build items HTML with staggered animation
-  const itemsHtml = state.cart.map((item, idx) => {
-    const subtotal = item.price * item.qty;
-    return '<div class="cart-banner-item" style="animation-delay:' + (idx * 0.06) + 's">' +
-      '<span class="cart-banner-item-name">' + escHtml(item.name) + '</span>' +
-      '<span class="cart-banner-item-price">' + subtotal.toLocaleString('fr-FR') + ' ' + getCurrency() + '</span>' +
-    '</div>';
-  }).join('<div class="cart-banner-divider"></div>');
+  const itemsContainer = document.getElementById('cart-banner-items');
+  if (itemsContainer) {
+    const itemsHtml = state.cart.map((item, idx) => {
+      const subtotal = item.price * item.qty;
+      return '<div class="cart-banner-item" style="animation-delay:' + (idx * 0.06) + 's">' +
+        '<span class="cart-banner-item-name">' + escHtml(item.name) + '</span>' +
+        '<span class="cart-banner-item-price">' + subtotal.toLocaleString('fr-FR') + ' ' + getCurrency() + '</span>' +
+      '</div>';
+    }).join('<div class="cart-banner-divider"></div>');
+    itemsContainer.innerHTML = itemsHtml;
+  }
   
   // Total
   const total = state.cart.reduce((s, i) => s + i.price * i.qty, 0);
   const totalEl = document.getElementById('cart-banner-total');
   if (totalEl) totalEl.textContent = total.toLocaleString('fr-FR') + ' ' + getCurrency();
-  itemsContainer.innerHTML = itemsHtml;
+  
   banner.classList.add('visible');
 }
 
@@ -612,6 +615,7 @@ function closeCartBanner() {
   const banner = document.getElementById('cart-banner');
   if (banner) banner.classList.remove('visible');
 }
+
 
 function changeQty(id, delta) {
   const item = state.cart.find(i => i.id == id);
