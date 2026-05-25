@@ -630,6 +630,7 @@ function closeCartBanner() {
     banner.style.display = 'none';
     banner.classList.remove('visible');
   }
+  // Make sure the banner shows again on next add
 }
 
 
