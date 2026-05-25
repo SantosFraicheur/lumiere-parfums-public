@@ -521,8 +521,9 @@ function renderProducts() {
 //  PANIER
 // ════════════════════════════════════════════════════════════
 function addToCart(productId) {
+  console.log('[PANIER] addToCart appelé avec productId=', productId);
   const prod = state.products.find(p => p.id == productId);
-  if (!prod) return;
+  if (!prod) { console.log('[PANIER] Produit non trouvé'); return; }
   const existing = state.cart.find(i => i.id == productId);
   if (existing) existing.qty++;
   else state.cart.push({ ...prod, qty: 1 });
@@ -582,10 +583,13 @@ function renderCart() {
 //  BANNIÈRE PANIER
 // ════════════════════════════════════════════════════════════
 function updateCartBanner() {
+  console.log('[PANIER] updateCartBanner appelé, cart.length=', state.cart ? state.cart.length : 0);
+  try {
   const banner = document.getElementById('cart-banner');
   if (!banner) return;
   
   if (!state.cart || state.cart.length === 0) {
+    console.log('[PANIER] Panier vide, cache la bannière');
     banner.classList.remove('visible');
     return;
   }
@@ -608,8 +612,9 @@ function updateCartBanner() {
   const totalEl = document.getElementById('cart-banner-total');
   if (totalEl) totalEl.textContent = total.toLocaleString('fr-FR') + ' ' + getCurrency();
   
+  console.log('[PANIER] Bannière affichée !');
   banner.classList.add('visible');
-}
+  } catch(e) { console.error('[PANIER] Erreur:', e); }
 
 function closeCartBanner() {
   const banner = document.getElementById('cart-banner');
