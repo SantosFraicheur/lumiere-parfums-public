@@ -619,6 +619,7 @@ function updateCartBanner() {
   console.log('[PANIER] Bannière affichée !');
   banner.classList.add('visible');
   } catch(e) { console.error('[PANIER] Erreur:', e); }
+}
 
 function closeCartBanner() {
   const banner = document.getElementById('cart-banner');
