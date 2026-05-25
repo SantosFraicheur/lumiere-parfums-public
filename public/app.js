@@ -586,59 +586,69 @@ function renderCart() {
 // ════════════════════════════════════════════════════════════
 //  BANNIÈRE PANIER
 // ════════════════════════════════════════════════════════════
+function createCartBanner() {
+  var div = document.getElementById('cart-banner');
+  if (div) return div;
+  div = document.createElement('div');
+  div.id = 'cart-banner';
+  div.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:9999;' +
+    'background:rgba(20,16,12,0.98);border:2px solid #c9a96e;border-radius:14px;' +
+    'box-shadow:0 10px 50px rgba(0,0,0,0.8);padding:18px 24px;min-width:300px;max-width:92vw;' +
+    'display:none;align-items:center;gap:16px;';
+  div.innerHTML = '<div id="cart-banner-items" style="flex:1;display:flex;flex-direction:column;gap:6px"></div>' +
+    '<span id="cart-banner-total" style="color:#c9a96e;font-size:18px;font-weight:bold;white-space:nowrap;font-family:\'Cormorant Garamond\',serif"></span>' +
+    '<div style="display:flex;gap:8px;flex-shrink:0">' +
+    '<button id="cart-banner-continue" style="background:transparent;color:#b0a090;border:1px solid rgba(201,169,110,0.3);padding:10px 18px;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border-radius:8px;font-family:\'Jost\',sans-serif">Continuer</button>' +
+    '<button id="cart-banner-cart" style="background:#c9a96e;color:#0d0a07;border:none;padding:10px 20px;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:600;border-radius:8px;font-family:\'Jost\',sans-serif">Voir Panier</button>' +
+    '</div>';
+  document.body.appendChild(div);
+  
+  document.getElementById('cart-banner-continue').onclick = function() {
+    div.style.display = 'none';
+  };
+  document.getElementById('cart-banner-cart').onclick = function() {
+    div.style.display = 'none';
+    showPage('cart');
+  };
+  return div;
+}
+
 function updateCartBanner() {
-  var banner = document.getElementById('cart-banner');
-  if (!banner) { console.log('[PANIER] Banner element not found!'); return; }
+  var banner = createCartBanner();
+  if (!banner) return;
   
   if (!state.cart || state.cart.length === 0) {
     banner.style.display = 'none';
-    banner.classList.remove('visible');
     return;
   }
   
   // Items
-  var itemsContainer = document.getElementById('cart-banner-items');
-  if (itemsContainer) {
+  var container = document.getElementById('cart-banner-items');
+  if (container) {
     var html = '';
     for (var i = 0; i < state.cart.length; i++) {
       var item = state.cart[i];
       var subtotal = Number(item.price) * Number(item.qty);
-      if (i > 0) html += '<div class="cart-banner-divider"></div>';
-      html += '<div class="cart-banner-item">' +
-        '<span class="cart-banner-item-name">' + escHtml(item.name) + '</span>' +
-        '<span class="cart-banner-item-price">' + subtotal.toLocaleString('fr-FR') + ' ' + getCurrency() + '</span>' +
+      if (i > 0) html += '<div style="width:100%;height:1px;background:rgba(201,169,110,0.15);margin:2px 0"></div>';
+      html += '<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#f5efe6">' +
+        '<span style="font-family:\'Cormorant Garamond\',serif;color:#f5efe6;font-size:14px">' + escHtml(item.name) + '</span>' +
+        '<span style="color:#c9a96e;font-family:\'Cormorant Garamond\',serif;font-size:14px">' + subtotal.toLocaleString('fr-FR') + ' ' + getCurrency() + '</span>' +
       '</div>';
     }
-    itemsContainer.innerHTML = html;
+    container.innerHTML = html;
   }
   
   // Total
   var total = 0;
-  for (var i = 0; i < state.cart.length; i++) {
-    total += Number(state.cart[i].price) * Number(state.cart[i].qty);
-  }
+  for (var i = 0; i < state.cart.length; i++) total += Number(state.cart[i].price) * Number(state.cart[i].qty);
   var totalEl = document.getElementById('cart-banner-total');
   if (totalEl) totalEl.textContent = total.toLocaleString('fr-FR') + ' ' + getCurrency();
   
   banner.style.display = 'flex';
-  banner.classList.add('visible');
+  // Forcer un scroll doux vers le haut pour que l'utilisateur voie la bannière
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function closeCartBanner() {
-  var banner = document.getElementById('cart-banner');
-  if (banner) {
-    banner.style.display = 'none';
-    banner.classList.remove('visible');
-  }
-  // Make sure the banner shows again on next add
-}
-
-
-
-function closeCartBanner() {
-  const banner = document.getElementById('cart-banner');
-  if (banner) banner.classList.remove('visible');
-}
 
 
 function changeQty(id, delta) {
