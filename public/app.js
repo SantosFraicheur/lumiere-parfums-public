@@ -2445,6 +2445,29 @@ document.body.appendChild(adminLink);
 
 initI18n();
 
+// Remove Anyclaw branding bar if present
+function removeAnyclawBranding() {
+  var selectors = [
+    '#anyclaw-branding-bar', '.anyclaw-branding', '#anyclaw-bar', '.anyclaw-bar',
+    '#branding-bar', '.branding-bar', '.powered-by-anyclaw',
+    '[id*="anyclaw"]', '[class*="anyclaw"]', '[id*="Anyclaw"]', '[class*="Anyclaw"]'
+  ];
+  for (var i = 0; i < selectors.length; i++) {
+    var el = document.querySelector(selectors[i]);
+    if (el) { el.parentNode.removeChild(el); }
+  }
+  // Also try to remove any fixed-bottom bar
+  var allDivs = document.querySelectorAll('div');
+  for (var j = 0; j < allDivs.length; j++) {
+    var d = allDivs[j];
+    if (d.offsetHeight < 60 && (d.innerHTML.indexOf('Anyclaw') > -1 || d.innerHTML.indexOf('anyclaw') > -1)) {
+      d.parentNode.removeChild(d);
+    }
+  }
+}
+setTimeout(removeAnyclawBranding, 500);
+setTimeout(removeAnyclawBranding, 1500);
+
 // Register service worker for PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
