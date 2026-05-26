@@ -19,7 +19,7 @@ const SVG = {
 
 // ── Style spin ─────────────────────────────────────────────────
 const _spinStyle = document.createElement('style');
-_spinStyle.textContent = '@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';
+_spinStyle.textContent = '@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}@keyframes blinkGold{0%{opacity:1;box-shadow:0 0 0 rgba(201,169,110,0)}50%{opacity:0.85;box-shadow:0 0 20px rgba(201,169,110,0.6)}100%{opacity:1;box-shadow:0 0 0 rgba(201,169,110,0)}}';
 document.head.appendChild(_spinStyle);
 
 // ── État global ───────────────────────────────────────────────
@@ -591,16 +591,25 @@ function createCartBanner() {
   if (div) return div;
   div = document.createElement('div');
   div.id = 'cart-banner';
-  div.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:9999;' +
-    'background:rgba(20,16,12,0.98);border:2px solid #c9a96e;border-radius:14px;' +
-    'box-shadow:0 10px 50px rgba(0,0,0,0.8);padding:18px 24px;min-width:300px;max-width:92vw;' +
-    'display:none;align-items:center;gap:16px;';
-  div.innerHTML = '<div id="cart-banner-items" style="flex:1;display:flex;flex-direction:column;gap:6px"></div>' +
-    '<span id="cart-banner-total" style="color:#c9a96e;font-size:18px;font-weight:bold;white-space:nowrap;font-family:\'Cormorant Garamond\',serif"></span>' +
-    '<div style="display:flex;gap:8px;flex-shrink:0">' +
-    '<button id="cart-banner-continue" style="background:transparent;color:#b0a090;border:1px solid rgba(201,169,110,0.3);padding:10px 18px;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border-radius:8px;font-family:\'Jost\',sans-serif">Continuer</button>' +
-    '<button id="cart-banner-cart" style="background:#c9a96e;color:#0d0a07;border:none;padding:10px 20px;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:600;border-radius:8px;font-family:\'Jost\',sans-serif">Voir Panier</button>' +
+  div.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9999;' +
+    'background:rgba(13,10,7,0.97);border-top:2px solid #c9a96e;' +
+    'box-shadow:0 -8px 40px rgba(0,0,0,0.8);padding:14px 18px;' +
+    'display:none;flex-direction:column;gap:10px;';
+  div.innerHTML =
+    '<div id="cart-banner-items" style="display:flex;flex-direction:column;gap:4px;padding:0 4px"></div>' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;padding:0 4px">' +
+      '<span style="color:#8a7a62;font-size:11px;font-family:\'Jost\',sans-serif;letter-spacing:1px;text-transform:uppercase">Total</span>' +
+      '<span id="cart-banner-total" style="color:#c9a96e;font-size:17px;font-weight:bold;font-family:\'Cormorant Garamond\',serif"></span>' +
     '</div>';
+
+  // Boutons en colonne
+  var btnDiv = document.createElement('div');
+  btnDiv.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-top:2px';
+  btnDiv.innerHTML =
+    '<button id="cart-banner-continue" style="background:transparent;color:#b0a090;border:1px solid rgba(201,169,110,0.25);padding:12px 0;font-size:12px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border-radius:10px;font-family:\'Jost\',sans-serif;width:100%;transition:all 0.3s">Continuer</button>' +
+    '<button id="cart-banner-cart" class="cart-banner-cart-btn" style="background:#c9a96e;color:#0d0a07;border:none;padding:14px 0;font-size:13px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:600;border-radius:10px;font-family:\'Jost\',sans-serif;width:100%;animation:blinkGold 1.2s ease-in-out infinite">\ud83d\uded2 Voir Panier</button>';
+  div.appendChild(btnDiv);
+
   document.body.appendChild(div);
   
   document.getElementById('cart-banner-continue').onclick = function() {
@@ -645,8 +654,6 @@ function updateCartBanner() {
   if (totalEl) totalEl.textContent = total.toLocaleString('fr-FR') + ' ' + getCurrency();
   
   banner.style.display = 'flex';
-  // Forcer un scroll doux vers le haut pour que l'utilisateur voie la bannière
-  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 
