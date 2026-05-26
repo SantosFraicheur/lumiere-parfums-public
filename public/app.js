@@ -594,7 +594,7 @@ function createCartBanner() {
   div.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9999;' +
     'animation:slideUpBanner 0.4s ease-out;' +
     'background:rgba(13,10,7,0.97);border-top:2px solid #c9a96e;' +
-    'box-shadow:0 -8px 40px rgba(0,0,0,0.8);padding:14px 18px 24px;' +
+    'box-shadow:0 -8px 40px rgba(0,0,0,0.8);padding:14px 18px 28px;' +
     'display:none;flex-direction:column;gap:10px;';
   div.innerHTML =
     '<div id="cart-banner-items" style="display:flex;flex-direction:column;gap:4px;padding:0 4px"></div>' +
