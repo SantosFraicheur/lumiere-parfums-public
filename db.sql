@@ -17,8 +17,8 @@ CREATE TABLE IF NOT EXISTS products (
   id          BIGINT       PRIMARY KEY,
   name        VARCHAR(255) NOT NULL,
   price       INTEGER      NOT NULL,
-  category    VARCHAR(100) NOT NULL,
-  quantite    VARCHAR(100) NOT NULL,
+  category    VARCHAR(100) NOT NULL DEFAULT '',
+  quantite    VARCHAR(100) NOT NULL DEFAULT '',
   description TEXT,
   created_at  TIMESTAMPTZ  DEFAULT NOW()
 );
@@ -55,14 +55,30 @@ CREATE TABLE IF NOT EXISTS order_items (
 
 CREATE TABLE IF NOT EXISTS settings (
   id            INTEGER PRIMARY KEY DEFAULT 1,
-  "bankName"    VARCHAR(255) NOT NULL,
-  "bankAccount" VARCHAR(255) NOT NULL,
-  "bankHolder"  VARCHAR(255) NOT NULL,
+  "bankName"    VARCHAR(255) NOT NULL DEFAULT '',
+  "bankAccount" VARCHAR(255) NOT NULL DEFAULT '',
+  "bankHolder"  VARCHAR(255) NOT NULL DEFAULT '',
+  "bankMobile"  VARCHAR(50)  NOT NULL DEFAULT '',
+  "siteName"    VARCHAR(255) NOT NULL DEFAULT '',
+  "siteMotto"   VARCHAR(500) NOT NULL DEFAULT '',
+  "sitePhone"   VARCHAR(100) NOT NULL DEFAULT '',
+  "siteEmail"   VARCHAR(255) NOT NULL DEFAULT '',
+  "siteWhatsapp" VARCHAR(100) NOT NULL DEFAULT '',
+  "siteInstagram" VARCHAR(255) NOT NULL DEFAULT '',
+  "siteFacebook" VARCHAR(255) NOT NULL DEFAULT '',
+  "siteAddress" TEXT NOT NULL DEFAULT '',
+  "siteTiktok"  VARCHAR(255) NOT NULL DEFAULT '',
+  "currency"    VARCHAR(10) NOT NULL DEFAULT '',
+  "smtpHost"    VARCHAR(255) NOT NULL DEFAULT '',
+  "smtpPort"    VARCHAR(10) NOT NULL DEFAULT '587',
+  "smtpUser"    VARCHAR(255) NOT NULL DEFAULT '',
+  "smtpPass"    VARCHAR(255) NOT NULL DEFAULT '',
+  "smtpFrom"    VARCHAR(255) NOT NULL DEFAULT '',
   CONSTRAINT settings_single_row CHECK (id = 1)
 );
 
-INSERT INTO settings (id, "bankName", "bankAccount", "bankHolder", "bankMobile")
-VALUES (1, '', '', '', '')
+INSERT INTO settings (id, "bankName", "bankAccount", "bankHolder", "bankMobile", "siteName", "siteMotto", "sitePhone", "siteEmail", "siteWhatsapp", "siteInstagram", "siteFacebook", "siteAddress", "siteTiktok", "currency", "smtpHost", "smtpPort", "smtpUser", "smtpPass", "smtpFrom")
+VALUES (1, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '587', '', '', '')
 ON CONFLICT (id) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS videos (

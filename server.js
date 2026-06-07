@@ -4,6 +4,8 @@
 //  Production-ready pour Railway / Render
 // ============================================================
 
+require('dotenv').config();
+
 const express      = require('express');
 const { Pool }     = require('pg');
 const cors         = require('cors');
@@ -43,6 +45,562 @@ const cloudinaryEnabled = !!(
   process.env.CLOUDINARY_API_KEY &&
   process.env.CLOUDINARY_API_SECRET
 );
+
+const dbUrl = buildDbUrl();
+function isLocalDatabaseUrl(url) {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return ['localhost', '127.0.0.1', '::1'].includes(parsed.hostname);
+  } catch (_) {
+    return false;
+  }
+}
+
+const previewMode = !dbUrl || isLocalDatabaseUrl(dbUrl) || process.env.PREVIEW_MODE === '1';
+
+const previewState = {
+  adminHash: ADMIN_PASSWORD ? bcrypt.hashSync(ADMIN_PASSWORD, 12) : null,
+  customers: [],
+  products: [
+    {
+      id: 1001,
+      name: 'Ambre Nocturne',
+      price: 24900,
+      category: 'Oriental',
+      quantite: '100ml',
+      description: 'Un parfum ambré profond, chaud et élégant.',
+      images: ['/hero-perfumes.png'],
+      created_at: new Date('2026-06-01T10:00:00Z'),
+      desc: 'Un parfum ambré profond, chaud et élégant.',
+    },
+    {
+      id: 1002,
+      name: 'Bois Impérial',
+      price: 21900,
+      category: 'Boisé',
+      quantite: '50ml',
+      description: 'Des notes boisées sèches avec un sillage raffiné.',
+      images: ['/hero-perfumes.png'],
+      created_at: new Date('2026-06-02T10:00:00Z'),
+      desc: 'Des notes boisées sèches avec un sillage raffiné.',
+    },
+    {
+      id: 1003,
+      name: 'Rose Lumière',
+      price: 19900,
+      category: 'Floral',
+      quantite: '75ml',
+      description: 'Une rose lumineuse, douce et contemporaine.',
+      images: ['/hero-perfumes.png'],
+      created_at: new Date('2026-06-03T10:00:00Z'),
+      desc: 'Une rose lumineuse, douce et contemporaine.',
+    },
+  ],
+  settings: {
+    id: 1,
+    bankName: 'Banque Lumière',
+    bankAccount: '0000 0000 0000',
+    bankHolder: 'LUMIÈRE Parfums',
+    bankMobile: '+225 00 00 00 00',
+    siteName: 'LUMIÈRE',
+    siteMotto: 'Parfums Premium',
+    sitePhone: '+225 00 00 00 00',
+    siteEmail: 'contactbloise@gmail.com',
+    siteWhatsapp: '+225 00 00 00 00',
+    siteInstagram: '@lumiere.parfums',
+    siteFacebook: 'LUMIÈRE Parfums',
+    siteAddress: 'Abidjan, Côte d’Ivoire',
+    siteTiktok: '@lumiere.parfums',
+    currency: '€',
+    smtpHost: '',
+    smtpPort: '587',
+    smtpUser: '',
+    smtpPass: '',
+    smtpFrom: '',
+  },
+  videos: [
+    {
+      id: 2001,
+      title: 'Lumière - Collection signature',
+      url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      created_at: new Date('2026-06-03T12:00:00Z'),
+    },
+  ],
+  reviews: [
+    {
+      id: 3001,
+      name: 'HIVA',
+      product: 'Florat',
+      content: 'Sympa',
+      rating: 5,
+      created_at: new Date('2026-06-10T12:00:00Z'),
+      approved: true,
+    },
+    {
+      id: 3002,
+      name: 'LUCAS DUPONT',
+      product: 'Coffrets cadeaux',
+      content: 'Superbe coffret cadeau, ma femme a adoré',
+      rating: 5,
+      created_at: new Date('2026-06-09T12:00:00Z'),
+      approved: true,
+    },
+    {
+      id: 3003,
+      name: 'ÉLISE MOREAU',
+      product: 'Parfums Femme',
+      content: 'Livraison rapide, emballage soigné. Parfum conforme à la description.',
+      rating: 5,
+      created_at: new Date('2026-06-08T12:00:00Z'),
+      approved: true,
+    },
+    {
+      id: 3004,
+      name: 'VÉTIVER',
+      product: 'Parfums Homme',
+      content: "Vétiver authentique, j'aime beaucoup",
+      rating: 5,
+      created_at: new Date('2026-06-07T12:00:00Z'),
+      approved: true,
+    },
+    {
+      id: 3005,
+      name: 'SOPHIE LEFEBVRE',
+      product: 'Flora',
+      content: "Parfait pour l'hiver, odeur boisée intense",
+      rating: 5,
+      created_at: new Date('2026-06-06T12:00:00Z'),
+      approved: true,
+    },
+    {
+      id: 3006,
+      name: 'THOMAS BERNARD',
+      product: 'Coffrets Valentino',
+      content: 'Ambre enveloppant, très agréable',
+      rating: 5,
+      created_at: new Date('2026-06-05T12:00:00Z'),
+      approved: true,
+    },
+  ],
+  orders: [],
+  orderItems: [],
+  promoCodes: [],
+  newsletter: [],
+};
+
+function normalizeSql(sql) {
+  return String(sql || '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function createPreviewPool() {
+  return {
+    async query(sql, params = []) {
+      const q = normalizeSql(sql);
+
+      if (q.startsWith('create table') || q.startsWith('create index') || q.startsWith('alter table')) {
+        return { rows: [], rowCount: 0 };
+      }
+
+      if (q.startsWith('insert into settings') || q.startsWith('update settings')) {
+        const [
+          bankName, bankAccount, bankHolder, bankMobile,
+          siteName, siteMotto, sitePhone, siteEmail,
+          siteWhatsapp, siteInstagram, siteFacebook, siteAddress, siteTiktok, currency,
+          smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom,
+        ] = params;
+        previewState.settings = {
+          ...previewState.settings,
+          bankName: bankName || '',
+          bankAccount: bankAccount || '',
+          bankHolder: bankHolder || '',
+          bankMobile: bankMobile || '',
+          siteName: siteName || '',
+          siteMotto: siteMotto || '',
+          sitePhone: sitePhone || '',
+          siteEmail: siteEmail || '',
+          siteWhatsapp: siteWhatsapp || '',
+          siteInstagram: siteInstagram || '',
+          siteFacebook: siteFacebook || '',
+          siteAddress: siteAddress || '',
+          siteTiktok: siteTiktok || '',
+          currency: currency || '',
+          smtpHost: smtpHost || '',
+          smtpPort: smtpPort || '587',
+          smtpUser: smtpUser || '',
+          smtpPass: smtpPass || '',
+          smtpFrom: smtpFrom || '',
+        };
+        return { rows: [], rowCount: 1 };
+      }
+
+      if (q.includes('select * from settings where id=1')) {
+        return { rows: [previewState.settings], rowCount: 1 };
+      }
+
+      if (q.startsWith('select') && q.includes('from products')) {
+        const rows = previewState.products.map(p => ({
+          ...p,
+          images: Array.isArray(p.images) ? [...p.images] : [],
+        }));
+        return { rows, rowCount: rows.length };
+      }
+
+      if (q.startsWith('select') && q.includes('from videos')) {
+        const rows = previewState.videos.map(v => ({ ...v }));
+        return { rows, rowCount: rows.length };
+      }
+
+      if (q.startsWith('select') && q.includes('from reviews')) {
+        const rows = q.startsWith('select * from reviews')
+          ? previewState.reviews.map(r => ({ ...r }))
+          : previewState.reviews.filter(r => r.approved === true).map(r => ({ ...r }));
+        return { rows, rowCount: rows.length };
+      }
+
+      if (q.includes('from promo_codes where code=$1 and active=true')) {
+        const code = String(params[0] || '').toUpperCase();
+        const rows = previewState.promoCodes.filter(p => p.code === code && p.active);
+        return { rows: rows.map(p => ({ ...p })), rowCount: rows.length };
+      }
+
+      if (q.includes('from admins where username=$1')) {
+        const username = params[0];
+        if (username === ADMIN_USERNAME && previewState.adminHash) {
+          if (q.includes('select password from admins') || q.includes('select id, password from admins')) {
+            return { rows: [{ id: 1, password: previewState.adminHash }], rowCount: 1 };
+          }
+        }
+        return { rows: [], rowCount: 0 };
+      }
+
+      if (q.includes('from customers where email=$1')) {
+        const email = params[0];
+        const found = previewState.customers.find(c => c.email === email);
+        if (!found) return { rows: [], rowCount: 0 };
+        const row = { ...found };
+        if (q.includes('password as hash')) {
+          row.hash = row.password;
+        }
+        return { rows: [row], rowCount: 1 };
+      }
+
+      if (q.startsWith('insert into customers')) {
+        const [email, name, phone, address, password] = params;
+        const existing = previewState.customers.find(c => c.email === email);
+        const record = {
+          email,
+          name,
+          phone: phone || null,
+          address: address || null,
+          password,
+          created_at: new Date(),
+          photo_url: null,
+        };
+        if (existing) Object.assign(existing, record);
+        else previewState.customers.push(record);
+        return { rows: [], rowCount: 1 };
+      }
+
+      if (q.startsWith('insert into products')) {
+        const [id, name, price, category, quantite, description] = params;
+        const record = {
+          id: Number(id),
+          name,
+          price: Number(price),
+          category: category || '',
+          quantite: quantite || '',
+          description: description || '',
+          desc: description || '',
+          images: [],
+          created_at: new Date(),
+        };
+        previewState.products = [record, ...previewState.products.filter(p => Number(p.id) !== Number(id))];
+        return { rows: [], rowCount: 1 };
+      }
+
+      if (q.startsWith('insert into product_images')) {
+        const [productId, imageUrl] = params;
+        const found = previewState.products.find(p => Number(p.id) === Number(productId));
+        if (found) {
+          if (!Array.isArray(found.images)) found.images = [];
+          found.images.push(imageUrl);
+        }
+        return { rows: [], rowCount: 1 };
+      }
+
+      if (q.startsWith('update customers set name=')) {
+        const [name, email] = params;
+        const found = previewState.customers.find(c => c.email === email);
+        if (found) found.name = name;
+        return { rows: [], rowCount: 1 };
+      }
+
+      if (q.startsWith('update customers set photo_url=')) {
+        const [photoUrl, email] = params;
+        const found = previewState.customers.find(c => c.email === email);
+        if (found) found.photo_url = photoUrl;
+        return { rows: [], rowCount: 1 };
+      }
+
+      if (q.startsWith('update customers set password=')) {
+        const [password, email] = params;
+        const found = previewState.customers.find(c => c.email === email);
+        if (found) found.password = password;
+        return { rows: [], rowCount: 1 };
+      }
+
+      if (q.startsWith('update products set name=')) {
+        const [name, price, description, category, quantite, id] = params;
+        const found = previewState.products.find(p => Number(p.id) === Number(id));
+        if (found) {
+          found.name = name;
+          found.price = Number(price);
+          found.description = description || '';
+          found.desc = description || '';
+          found.category = category || '';
+          found.quantite = quantite || '';
+        }
+        return { rows: [], rowCount: 1 };
+      }
+
+      if (q.startsWith('delete from product_images where product_id=$1')) {
+        const productId = Number(params[0]);
+        const found = previewState.products.find(p => Number(p.id) === productId);
+        if (found) found.images = [];
+        return { rows: [], rowCount: 1 };
+      }
+
+      if (q.startsWith('delete from products where id=$1')) {
+        const productId = Number(params[0]);
+        previewState.products = previewState.products.filter(p => Number(p.id) !== productId);
+        return { rows: [], rowCount: 1 };
+      }
+
+      if (q.startsWith('select email, name, phone, address, created_at from customers')) {
+        return {
+          rows: previewState.customers.map(({ password, photo_url, ...rest }) => rest),
+          rowCount: previewState.customers.length,
+        };
+      }
+
+      if (q.includes('from orders where "trackingcode"=$1')) {
+        const code = params[0];
+        const order = previewState.orders.find(o => o.trackingCode === code);
+        if (!order) return { rows: [], rowCount: 0 };
+        return {
+          rows: [{
+            id: order.id,
+            customer: order.customer,
+            total: order.total,
+            status: order.status,
+            trackingCode: order.trackingCode,
+            created_at: order.created_at,
+          }],
+          rowCount: 1,
+        };
+      }
+
+      if (q.includes('from orders where "userid"=$1')) {
+        const email = params[0];
+        const rows = previewState.orders.filter(o => o.userId === email).map(o => ({
+          ...o,
+          proof_url: o.proof_url || null,
+        }));
+        return { rows, rowCount: rows.length };
+      }
+
+      if (q.includes('from orders order by created_at desc')) {
+        const rows = previewState.orders.map(o => ({ ...o, proof_url: o.proof_url || null }));
+        return { rows, rowCount: rows.length };
+      }
+
+      if (q.startsWith('insert into orders')) {
+        const [id, userId, customer, total, address, trackingCode, proofUrl] = params;
+        previewState.orders.push({
+          id,
+          userId,
+          customer,
+          total,
+          status: 'pending',
+          address,
+          trackingCode,
+          proof_url: proofUrl,
+          created_at: new Date(),
+        });
+        return { rows: [], rowCount: 1 };
+      }
+
+      if (q.startsWith('update orders set status=$1 where id=$2')) {
+        const [status, id] = params;
+        const found = previewState.orders.find(o => o.id === id);
+        if (found) found.status = status;
+        return { rows: [], rowCount: 1 };
+      }
+
+      if (q.startsWith('delete from orders where id=$1')) {
+        const id = params[0];
+        previewState.orders = previewState.orders.filter(o => o.id !== id);
+        previewState.orderItems = previewState.orderItems.filter(i => i.order_id !== id);
+        return { rows: [], rowCount: 1 };
+      }
+
+      if (q.startsWith('insert into order_items')) {
+        const [orderId, productId, productName, quantity, price] = params;
+        previewState.orderItems.push({
+          order_id: orderId,
+          product_id: productId,
+          product_name: productName,
+          quantity,
+          price,
+        });
+        return { rows: [], rowCount: 1 };
+      }
+
+      if (q.includes('from order_items where order_id=$1')) {
+        const orderId = params[0];
+        const rows = previewState.orderItems.filter(i => i.order_id === orderId).map(({ order_id, ...rest }) => rest);
+        return { rows, rowCount: rows.length };
+      }
+
+      if (q.startsWith('insert into videos')) {
+        const [id, title, url] = params;
+        previewState.videos = [
+          {
+            id: Number(id),
+            title,
+            url,
+            created_at: new Date(),
+          },
+          ...previewState.videos.filter(v => Number(v.id) !== Number(id)),
+        ];
+        return { rows: [], rowCount: 1 };
+      }
+
+      if (q.startsWith('delete from videos where id=$1')) {
+        const id = Number(params[0]);
+        previewState.videos = previewState.videos.filter(v => Number(v.id) !== id);
+        return { rows: [], rowCount: 1 };
+      }
+
+      if (q.startsWith('select') && q.includes('from newsletter')) {
+        const rows = previewState.newsletter.map(n => ({ ...n }));
+        return { rows, rowCount: rows.length };
+      }
+
+      if (q.startsWith('insert into newsletter')) {
+        const email = params[0];
+        if (!previewState.newsletter.find(n => n.email === email)) {
+          previewState.newsletter.push({ id: Date.now(), email, created_at: new Date() });
+        }
+        return { rows: [], rowCount: 1 };
+      }
+
+      if (q.startsWith('insert into promo_codes')) {
+        const [code, discountType, discountValue, maxUses] = params;
+        const existing = previewState.promoCodes.find(p => p.code === code);
+        const record = existing || {
+          id: Date.now(),
+          used_count: 0,
+          active: true,
+          created_at: new Date(),
+        };
+        Object.assign(record, {
+          code,
+          discount_type: discountType,
+          discount_value: Number(discountValue),
+          max_uses: maxUses ?? null,
+        });
+        if (!existing) previewState.promoCodes.unshift(record);
+        return { rows: [record], rowCount: 1 };
+      }
+
+      if (q.startsWith('update promo_codes set active = not active where id=$1')) {
+        const id = Number(params[0]);
+        const found = previewState.promoCodes.find(p => Number(p.id) === id);
+        if (found) found.active = !found.active;
+        return { rows: [], rowCount: 1 };
+      }
+
+      if (q.startsWith('update promo_codes set used_count = used_count + 1 where code=$1')) {
+        const code = String(params[0] || '').toUpperCase();
+        const found = previewState.promoCodes.find(p => p.code === code);
+        if (found) found.used_count = Number(found.used_count || 0) + 1;
+        return { rows: [], rowCount: 1 };
+      }
+
+      if (q.startsWith('delete from promo_codes where id=$1')) {
+        const id = Number(params[0]);
+        previewState.promoCodes = previewState.promoCodes.filter(p => Number(p.id) !== id);
+        return { rows: [], rowCount: 1 };
+      }
+
+      if (q.startsWith('select * from promo_codes order by created_at desc')) {
+        return { rows: previewState.promoCodes.map(p => ({ ...p })), rowCount: previewState.promoCodes.length };
+      }
+
+      if (q.includes('from promo_codes')) {
+        return { rows: previewState.promoCodes.map(p => ({ ...p })), rowCount: previewState.promoCodes.length };
+      }
+
+      if (q.startsWith('update reviews set approved=$1 where id=$2')) {
+        const [approved, id] = params;
+        const found = previewState.reviews.find(r => Number(r.id) === Number(id));
+        if (found) found.approved = approved === true || approved === 'true';
+        return { rows: [], rowCount: 1 };
+      }
+
+      if (q.startsWith('delete from reviews where id=$1')) {
+        const id = Number(params[0]);
+        previewState.reviews = previewState.reviews.filter(r => Number(r.id) !== id);
+        return { rows: [], rowCount: 1 };
+      }
+
+      if (q.startsWith('insert into reviews')) {
+        const [name, product, content, rating, approved] = params;
+        const record = {
+          id: Date.now(),
+          name,
+          product: product || '',
+          content,
+          rating: Number(rating) || 5,
+          approved: approved === undefined ? true : (approved === true || approved === 'TRUE' || approved === 'true'),
+          created_at: new Date(),
+        };
+        previewState.reviews.unshift(record);
+        return { rows: [record], rowCount: 1 };
+      }
+
+      if (q.startsWith('delete from newsletter where id=$1')) {
+        const id = Number(params[0]);
+        previewState.newsletter = previewState.newsletter.filter(n => Number(n.id) !== id);
+        return { rows: [], rowCount: 1 };
+      }
+
+      if (q.startsWith('delete from newsletter')) return { rows: [], rowCount: 1 };
+
+      return { rows: [], rowCount: 0 };
+    },
+    async connect() {
+      return { release() {} };
+    },
+    on() {},
+  };
+}
+
+function buildDbUrl() {
+  const u = process.env.DATABASE_URL || '';
+  if (u.startsWith('postgres')) return u;
+  const h  = process.env.PGHOST;
+  const p  = process.env.PGPORT  || '5432';
+  const us = process.env.PGUSER;
+  const pw = process.env.PGPASSWORD;
+  const db = process.env.PGDATABASE;
+  if (h && us && pw && db) {
+    return `postgresql://${encodeURIComponent(us)}:${encodeURIComponent(pw)}@${h}:${p}/${db}`;
+  }
+  return '';
+}
 
 app.use(helmet({
   contentSecurityPolicy: {
@@ -103,33 +661,32 @@ app.use('/api/', (_req, res, next) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-function buildDbUrl() {
-  const u = process.env.DATABASE_URL || '';
-  if (u.startsWith('postgres')) return u;
-  const h  = process.env.PGHOST;
-  const p  = process.env.PGPORT  || '5432';
-  const us = process.env.PGUSER;
-  const pw = process.env.PGPASSWORD;
-  const db = process.env.PGDATABASE;
-  if (h && us && pw && db) {
-    return `postgresql://${encodeURIComponent(us)}:${encodeURIComponent(pw)}@${h}:${p}/${db}`;
-  }
-  return '';
+if (previewMode) {
+  app.get('/api/health', (_req, res) => res.json({ status: 'ok', preview: true }));
+  app.get('/api/products', (_req, res) => {
+    res.json(previewState.products.map(p => ({ ...p })));
+  });
+  app.get('/api/settings', (_req, res) => {
+    res.json({ ...previewState.settings });
+  });
+  app.get('/api/videos', (_req, res) => {
+    res.json(previewState.videos.map(v => ({ ...v })));
+  });
+  app.get('/api/reviews', (_req, res) => {
+    res.json(previewState.reviews.filter(r => r.approved === true).map(r => ({ ...r })));
+  });
+  console.warn('MODE APERÇU: aucune base PostgreSQL détectée, données de démonstration activées.');
 }
 
-const dbUrl = buildDbUrl();
-if (!dbUrl) {
-  console.error('FATAL: Aucune URL PostgreSQL valide.');
-  process.exit(1);
-}
-
-const pool = new Pool({
-  connectionString: dbUrl,
-  ssl: { rejectUnauthorized: false },
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-});
+const pool = previewMode
+  ? createPreviewPool()
+  : new Pool({
+      connectionString: dbUrl,
+      ssl: { rejectUnauthorized: false },
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+    });
 
 pool.on('error', (err) => {
   console.error('Erreur pool PostgreSQL :', err.message);
@@ -138,7 +695,11 @@ pool.on('error', (err) => {
 app.listen(PORT, () => {
   console.log(`Serveur LUMIÈRE démarré sur le port ${PORT}`);
   if (!cloudinaryEnabled) console.warn('ATTENTION: Cloudinary non configuré — uploads désactivés');
-  connectWithRetry();
+  if (!previewMode) {
+    connectWithRetry();
+  } else {
+    console.log('Preview local actif: backend PostgreSQL remplacé par des données de démonstration.');
+  }
 });
 
 async function connectWithRetry(attempts = 10, delayMs = 3000) {
@@ -167,8 +728,8 @@ async function initDatabase() {
       CREATE TABLE IF NOT EXISTS customers (
         email     VARCHAR(255) PRIMARY KEY,
         name      VARCHAR(255) NOT NULL,
-        phone     VARCHAR(50),
-        address   TEXT,
+        phone     VARCHAR(50) NOT NULL,
+        address   TEXT NOT NULL,
         password  VARCHAR(255) NOT NULL,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
@@ -176,8 +737,8 @@ async function initDatabase() {
         id          BIGINT PRIMARY KEY,
         name        VARCHAR(255) NOT NULL,
         price       INTEGER NOT NULL,
-        category    VARCHAR(100),
-        quantite    VARCHAR(100),
+        category    VARCHAR(100) NOT NULL DEFAULT '',
+        quantite    VARCHAR(100) NOT NULL DEFAULT '',
         description TEXT,
         created_at  TIMESTAMPTZ DEFAULT NOW()
       );
@@ -209,14 +770,30 @@ async function initDatabase() {
       );
       CREATE TABLE IF NOT EXISTS settings (
         id            INTEGER PRIMARY KEY DEFAULT 1,
-        "bankName"    VARCHAR(255),
-        "bankAccount" VARCHAR(255),
-        "bankHolder"  VARCHAR(255),
-        "bankMobile"  VARCHAR(50),
+        "bankName"    VARCHAR(255) DEFAULT '',
+        "bankAccount" VARCHAR(255) DEFAULT '',
+        "bankHolder"  VARCHAR(255) DEFAULT '',
+        "bankMobile"  VARCHAR(50)  DEFAULT '',
+        "siteName"    VARCHAR(255) DEFAULT '',
+        "siteMotto"   VARCHAR(500) DEFAULT '',
+        "sitePhone"   VARCHAR(100) DEFAULT '',
+        "siteEmail"   VARCHAR(255) DEFAULT '',
+        "siteWhatsapp" VARCHAR(100) DEFAULT '',
+        "siteInstagram" VARCHAR(255) DEFAULT '',
+        "siteFacebook" VARCHAR(255) DEFAULT '',
+        "siteAddress" TEXT DEFAULT '',
+        "siteTiktok"  VARCHAR(255) DEFAULT '',
+        "currency"    VARCHAR(10) DEFAULT '',
+        "smtpHost"    VARCHAR(255) DEFAULT '',
+        "smtpPort"    VARCHAR(10) DEFAULT '587',
+        "smtpUser"    VARCHAR(255) DEFAULT '',
+        "smtpPass"    VARCHAR(255) DEFAULT '',
+        "smtpFrom"    VARCHAR(255) DEFAULT '',
         CONSTRAINT settings_single_row CHECK (id = 1)
       );
-      INSERT INTO settings (id, "bankName", "bankAccount", "bankHolder", "bankMobile", "smtpHost", "smtpPort", "smtpUser", "smtpPass", "smtpFrom")
-      VALUES (1, '', '', '', '', '', '587', '', '', '') ON CONFLICT (id) DO NOTHING;
+      INSERT INTO settings (id, "bankName", "bankAccount", "bankHolder", "bankMobile", "siteName", "siteMotto", "sitePhone", "siteEmail", "siteWhatsapp", "siteInstagram", "siteFacebook", "siteAddress", "siteTiktok", "currency", "smtpHost", "smtpPort", "smtpUser", "smtpPass", "smtpFrom")
+      VALUES (1, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '587', '', '', '')
+      ON CONFLICT (id) DO NOTHING;
       CREATE TABLE IF NOT EXISTS promo_codes (
         id             SERIAL PRIMARY KEY,
         code           VARCHAR(50) UNIQUE NOT NULL,
@@ -389,11 +966,11 @@ app.post('/api/upload/proof', authenticateUser, [
 // ════════════════════════════════════════════════════════════
 
 app.post('/api/register', authLimiter, [
-  body('email').isEmail().normalizeEmail().withMessage('Email invalide'),
-  body('name').trim().notEmpty().isLength({ max: 255 }).withMessage('Nom requis'),
+  body('email').isEmail().withMessage('Email invalide').normalizeEmail(),
+  body('name').trim().notEmpty().withMessage('Nom requis').isLength({ max: 255 }),
   body('password').isLength({ min: 6 }).withMessage('Mot de passe : 6 caractères minimum'),
-  body('phone').optional().trim().isLength({ max: 50 }),
-  body('address').optional().trim().isLength({ max: 1000 }),
+  body('phone').trim().notEmpty().withMessage('Téléphone requis').isLength({ max: 50 }),
+  body('address').trim().notEmpty().withMessage('Adresse requise').isLength({ max: 1000 }),
 ], validate, async (req, res) => {
   const { name, email, phone, address, password } = req.body;
   try {
@@ -494,7 +1071,7 @@ app.patch('/api/auth/password', authenticateUser, [
     await pool.query('UPDATE customers SET password=$1 WHERE email=$2', [hash, req.user.email]);
     res.json({ ok: true });
   } catch (err) {
-    req.log.error(err);
+    console.error(err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
@@ -539,7 +1116,7 @@ app.post('/api/products', authenticateAdmin, [
   try {
     await pool.query(
       'INSERT INTO products (id, name, price, category, quantite, description) VALUES ($1,$2,$3,$4,$5,$6)',
-      [productId, name, price, category, quantite, desc]
+      [productId, name, price, category || '', quantite || '', desc]
     );
     for (const url of images) {
       await pool.query('INSERT INTO product_images (product_id, image_url) VALUES ($1,$2)', [productId, url]);
@@ -562,7 +1139,7 @@ app.put('/api/products/:id', authenticateAdmin, [
   try {
     await pool.query(
       'UPDATE products SET name=$1, price=$2, description=$3, category=$4, quantite=$5 WHERE id=$6',
-      [name, price, desc, category, quantite, id]
+      [name, price, desc, category || '', quantite || '', id]
     );
     await pool.query('DELETE FROM product_images WHERE product_id=$1', [id]);
     for (const url of images) {
@@ -662,10 +1239,37 @@ app.post('/api/orders', authenticateUser, [
   const id          = genOrderId();
   const trackingCode = genTrackingCode();
   try {
+    const baseTotal = items.reduce((sum, item) => {
+      const qty = Number(item.qty ?? item.quantity ?? 0);
+      const price = Number(item.price ?? 0);
+      return sum + (qty > 0 ? qty : 0) * (price > 0 ? price : 0);
+    }, 0);
+
+    let finalTotal = baseTotal;
+    let promoToIncrement = null;
+    if (promoCode) {
+      const { rows } = await pool.query(
+        `SELECT * FROM promo_codes WHERE code=$1 AND active=TRUE`,
+        [String(promoCode).toUpperCase()]
+      );
+      if (!rows.length) {
+        return res.status(404).json({ error: 'Code promo invalide ou désactivé' });
+      }
+      const promo = rows[0];
+      if (promo.max_uses !== null && promo.used_count >= promo.max_uses) {
+        return res.status(400).json({ error: 'Ce code promo a atteint sa limite d\'utilisation' });
+      }
+      const discount = promo.discount_type === 'percent'
+        ? Math.round(baseTotal * promo.discount_value / 100)
+        : Math.min(promo.discount_value, baseTotal);
+      finalTotal = Math.max(0, baseTotal - discount);
+      promoToIncrement = promo.code;
+    }
+
     await pool.query(
       `INSERT INTO orders (id, "userId", customer, total, status, address, "trackingCode", proof_url)
        VALUES ($1,$2,$3,$4,'pending',$5,$6,$7)`,
-      [id, userId, customer, total, address, trackingCode, proofUrl]
+      [id, userId, customer, finalTotal, address, trackingCode, proofUrl]
     );
     for (const item of items) {
       await pool.query(
@@ -673,7 +1277,8 @@ app.post('/api/orders', authenticateUser, [
         [id, item.id, item.name || item.product_name, item.qty || item.quantity, item.price]
       );
     }
-    res.json({ ok: true, id, trackingCode });
+    if (promoToIncrement) await incrementPromoUsage(promoToIncrement);
+    res.json({ ok: true, id, trackingCode, total: finalTotal });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur création commande' });
@@ -718,7 +1323,7 @@ async function migrateSettingsColumns() {
     `ALTER TABLE settings ADD COLUMN IF NOT EXISTS "sitePhone"    VARCHAR(100) DEFAULT ''`,
     `ALTER TABLE settings ADD COLUMN IF NOT EXISTS "siteEmail"    VARCHAR(255) DEFAULT ''`,
     `ALTER TABLE settings ADD COLUMN IF NOT EXISTS "siteWhatsapp" VARCHAR(100) DEFAULT ''`,
-    `ALTER TABLE settings ADD COLUMN IF NOT EXISTS "siteInstagram"VARCHAR(255) DEFAULT ''`,
+    `ALTER TABLE settings ADD COLUMN IF NOT EXISTS "siteInstagram" VARCHAR(255) DEFAULT ''`,
     `ALTER TABLE settings ADD COLUMN IF NOT EXISTS "siteFacebook" VARCHAR(255) DEFAULT ''`,
     `ALTER TABLE settings ADD COLUMN IF NOT EXISTS "siteAddress"  TEXT         DEFAULT ''`,
     `ALTER TABLE settings ADD COLUMN IF NOT EXISTS "bankMobile"   VARCHAR(50)  DEFAULT ''`,
@@ -969,7 +1574,7 @@ app.get('/api/reviews', async (_req, res) => {
   await migrateReviewsTable();
   try {
     const { rows } = await pool.query(
-      'SELECT id, name, product, content, rating, created_at FROM reviews ORDER BY created_at DESC'
+      'SELECT id, name, product, content, rating, created_at FROM reviews WHERE approved=TRUE ORDER BY created_at DESC'
     );
     res.json(rows);
   } catch (err) {

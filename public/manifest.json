@@ -2,7 +2,7 @@
   "name": "Premium Parfums",
   "short_name": "Premium P.",
   "description": "L'art de sentir le luxe — Boutique de Parfums Exclusifs",
-  "start_url": "/",
+  "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",

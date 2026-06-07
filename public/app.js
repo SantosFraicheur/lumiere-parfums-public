@@ -829,7 +829,6 @@ async function listenOrders() {
     const res     = await fetch(url, { headers });
     if (!res.ok) return;
     state.orders  = await res.json();
-    renderTracking();
     if (state.isAdmin) { renderAdminOrders(); renderAdminDashboard(); }
   } catch (_) {}
 }
@@ -981,7 +980,7 @@ async function renderAdminPromoCodes() {
         <tr>
           <td><strong style="color:var(--gold);letter-spacing:2px">${escHtml(p.code)}</strong></td>
           <td style="color:var(--text-dim)">${p.discount_type === 'percent' ? 'Pourcentage' : 'Fixe'}</td>
-          <td style="color:var(--cream)">${p.discount_value}${p.discount_type === 'percent' ? '%' : ' $'}</td>
+          <td style="color:var(--cream)">${p.discount_value}${p.discount_type === 'percent' ? '%' : ' ' + getCurrency()}</td>
           <td style="color:var(--text-dim)">${p.used_count}${p.max_uses ? ' / ' + p.max_uses : ' / ∞'}</td>
           <td><span style="padding:3px 12px;font-size:10px;letter-spacing:2px;${p.active
             ? 'background:rgba(39,174,96,0.12);color:var(--green);border:1px solid rgba(39,174,96,0.3)'

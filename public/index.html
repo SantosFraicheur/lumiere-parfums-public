@@ -504,11 +504,12 @@ nav {
 
 /* Contact & Newsletter Section */
 .contact-section {
-  padding: 60px 20px;
+  padding: 60px 20px 56px;
   max-width: 800px;
   margin: 0 auto;
   width: 100%;
   text-align: center;
+  border-top: 1px solid rgba(201,169,110,0.14);
 }
 .contact-title {
   font-family: 'Cormorant Garamond', serif;
@@ -581,10 +582,11 @@ nav {
 }
 
 .reviews-section {
-  padding: 60px 20px;
+  padding: 60px 20px 56px;
   max-width: 1000px;
   margin: 0 auto;
   width: 100%;
+  border-top: 1px solid rgba(201,169,110,0.12);
 }
 .reviews-title {
   font-family: 'Cormorant Garamond', serif;
@@ -721,11 +723,12 @@ nav {
 
 /* Social Section */
 .social-section {
-  padding: 50px 20px;
+  padding: 50px 20px 58px;
   max-width: 700px;
   margin: 0 auto;
   width: 100%;
   text-align: center;
+  border-top: 1px solid rgba(201,169,110,0.12);
 }
 .social-icons {
   display: flex;
@@ -950,9 +953,11 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
   #videos-grid { padding: 20px !important; }
 }
 @media (max-width: 480px) {
-  .reviews-section { padding: 40px 20px; }
+  .contact-section { padding: 40px 14px; }
+  .reviews-section { padding: 40px 14px; }
   .reviews-title { font-size: 28px; }
-  .reviews-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
+  .reviews-grid { grid-template-columns: 1fr; gap: 14px; }
+  .social-section { padding: 30px 14px; }
   .hero-title { font-size: 38px; }
   .stats-grid { grid-template-columns: 1fr; }
   .confirm-actions { flex-direction: column; }
@@ -1133,7 +1138,7 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
   <div class="contact-section">
     <h2 class="contact-title" data-i18n="Nous contacter">Nous contacter</h2>
     <p class="contact-sub" data-i18n="Une question ? Une commande spéciale ?">Une question ? Une commande spéciale ?</p>
-    <a href="mailto:" class="contact-email" id="contact-email-link>contactbloise@gmail.com</a>
+    <a href="mailto:contactbloise@gmail.com" class="contact-email" id="contact-email-link">contactbloise@gmail.com</a>
     
     <div class="newsletter-box">
       <h3 class="newsletter-title" data-i18n="Newsletter">Newsletter</h3>
