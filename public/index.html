@@ -950,6 +950,9 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
   #videos-grid { padding: 20px !important; }
 }
 @media (max-width: 480px) {
+  .reviews-section { padding: 40px 20px; }
+  .reviews-title { font-size: 28px; }
+  .reviews-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
   .hero-title { font-size: 38px; }
   .stats-grid { grid-template-columns: 1fr; }
   .confirm-actions { flex-direction: column; }
@@ -1007,6 +1010,13 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
   .page { padding-top: 70px; }
   body { overflow-x: hidden; }
   .hero-visual-img { height: 140px; }
+  .reviews-section { padding: 40px 14px; }
+  .reviews-title { font-size: 26px; }
+  .reviews-grid { grid-template-columns: 1fr; gap: 14px; }
+  .review-card { padding: 18px; }
+  .review-form-box { padding: 24px 14px; }
+  .review-form-box h3 { font-size: 22px; }
+  .review-form-row { flex-direction: column; gap: 12px; }
 }
 /* === SHIMMER LOADING EFFECT === */
 .shimmer {
@@ -1133,6 +1143,46 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
         <button class="btn-primary" onclick="subscribeNewsletter()" data-i18n="S'abonner">S'abonner</button>
       </div>
       <div id="newsletter-msg" style="margin-top:12px;font-size:12px;color:var(--green);display:none"></div>
+    </div>
+  </div>
+
+  <!-- AVIS CLIENTS -->
+
+  <div class="reviews-section">
+    <h2 class="reviews-title" data-i18n="Avis Clients">Avis Clients</h2>
+    <p class="reviews-sub" data-i18n="Ce que disent nos clients">Ce que disent nos clients</p>
+    <div class="reviews-grid" id="reviews-grid"></div>
+    <div class="review-form-box">
+      <h3 data-i18n="Donnez votre avis">Donnez votre avis</h3>
+      <p data-i18n="Partagez votre expérience avec nos parfums">Partagez votre expérience avec nos parfums</p>
+      <div class="review-form-row">
+        <div class="form-group">
+          <label data-i18n="Votre nom">Votre nom</label>
+          <input type="text" id="review-name" placeholder="Sophie L.">
+        </div>
+        <div class="form-group">
+          <label data-i18n="Produit">Produit</label>
+          <input type="text" id="review-product" placeholder="Flora, Coffret...">
+        </div>
+      </div>
+      <div class="review-form-row">
+        <div class="form-group" style="flex:3">
+          <label data-i18n="Votre avis">Votre avis</label>
+          <textarea id="review-content" placeholder="Partagez votre expérience..."></textarea>
+        </div>
+        <div class="form-group" style="flex:1">
+          <label data-i18n="Note">Note</label>
+          <select id="review-rating">
+            <option value="5">★★★★★</option>
+            <option value="4">★★★★☆</option>
+            <option value="3">★★★☆☆</option>
+            <option value="2">★★☆☆☆</option>
+            <option value="1">★☆☆☆☆</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn-primary btn-full" onclick="submitReview()" data-i18n="Envoyer mon avis">Envoyer mon avis</button>
+      <div id="review-form-msg" style="margin-top:12px;font-size:12px;color:var(--text-dim);display:none"></div>
     </div>
   </div>
 
