@@ -27,7 +27,7 @@ function setBtnLoading(btn) {
   if (!btn) return;
   btn._origHTML = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = SVG.loader + ' <span style="opacity:0.7">' + btn.textContent + '</span>';
+  btn.innerHTML = '<span style="opacity:0.5">' + btn.textContent + '</span> <span class="btn-loading-dots"><span></span><span></span><span></span></span>';
 }
 function setBtnNormal(btn) {
   if (!btn) return;
