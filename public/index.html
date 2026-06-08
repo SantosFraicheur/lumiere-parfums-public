@@ -342,6 +342,33 @@ nav {
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--gold); }
 .form-group textarea { resize: vertical; min-height: 100px; }
 .btn-full { width: 100%; padding: 16px; font-size: 11px; letter-spacing: 4px; margin-top: 10px; }
+.btn:disabled, .btn-primary:disabled, .btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.btn-loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+  opacity: 0.8;
+}
+.btn-loading::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  margin: -8px 0 0 -8px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: btnSpin 0.6s linear infinite;
+}
+@keyframes btnSpin {
+  to { transform: rotate(360deg); }
+}
 .auth-switch { text-align: center; margin-top: 24px; font-size: 12px; color: var(--text-dim); }
 .auth-switch a { color: var(--gold); cursor: pointer; text-decoration: none; }
 .auth-switch a:hover { text-decoration: underline; }
@@ -1297,7 +1324,7 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
 <div class="page" id="page-confirm">
   <div class="confirm-container">
     <div class="confirm-icon">
-      <i data-lucide="check"></i>
+      <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
     </div>
     <h1 class="confirm-title" data-i18n="Commande Envoyée">Commande Envoyée</h1>
     <p class="confirm-sub" data-i18n="confirm-msg">Votre commande a bien été reçue — en attente de validation</p>

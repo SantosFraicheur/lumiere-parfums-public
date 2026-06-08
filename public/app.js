@@ -329,6 +329,8 @@ async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
   const pass  = document.getElementById('login-password').value;
   if (!email || !pass) { showToast(__('Remplissez tous les champs'), 'error'); return; }
+  const btn = document.querySelector('#form-login .btn-primary.btn-full');
+  if (btn) { btn.disabled = true; btn.classList.add('btn-loading'); }
   try {
     const res  = await fetch('/api/login', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -342,6 +344,9 @@ async function doLogin() {
     showToast(__('Bienvenue') + ' ' + data.user.name + ' !', 'success');
     state.cart.length > 0 ? showPage('payment') : showPage('boutique');
   } catch { showToast(__('Erreur réseau'), 'error'); }
+  finally {
+    if (btn) { btn.disabled = false; btn.classList.remove('btn-loading'); }
+  }
 }
 
 async function doRegister() {
@@ -353,6 +358,8 @@ async function doRegister() {
   if (!name || !email || !phone || !address || !pass) {
     showToast(__('Tous les champs sont requis'), 'error'); return;
   }
+  const btn = document.querySelector('#form-register .btn-primary.btn-full');
+  if (btn) { btn.disabled = true; btn.classList.add('btn-loading'); }
   try {
     const res  = await fetch('/api/register', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -366,6 +373,9 @@ async function doRegister() {
     showToast(__('Compte créé') + ' ! ' + name, 'success');
     state.cart.length > 0 ? showPage('payment') : showPage('boutique');
   } catch { showToast(__('Erreur réseau'), 'error'); }
+  finally {
+    if (btn) { btn.disabled = false; btn.classList.remove('btn-loading'); }
+  }
 }
 
 function updateNavUser() {
@@ -785,7 +795,7 @@ async function submitOrder() {
   };
 
   const btn = document.querySelector('#page-payment .btn-primary.btn-full');
-  if (btn) { btn.disabled = true; btn.textContent = __('Envoi en cours…'); }
+  if (btn) { btn.disabled = true; btn.classList.add('btn-loading'); }
 
   try {
     const res = await fetch('/api/orders', {
@@ -795,7 +805,6 @@ async function submitOrder() {
     if (!res.ok) {
       if (res.status === 401) { showToast(__('Session expirée, reconnectez-vous'), 'error'); logout(); return; }
       showToast(data.error || __('Erreur commande'), 'error');
-      if (btn) { btn.disabled = false; btn.textContent = __('Soumettre la Commande'); }
       return;
     }
     // Succès : vider le panier et afficher l'écran de confirmation
@@ -806,7 +815,9 @@ async function submitOrder() {
     listenOrders();
   } catch {
     showToast(__('Erreur réseau'), 'error');
-    if (btn) { btn.disabled = false; btn.textContent = __('Soumettre la Commande'); }
+  }
+  finally {
+    if (btn) { btn.disabled = false; btn.classList.remove('btn-loading'); }
   }
 }
 
