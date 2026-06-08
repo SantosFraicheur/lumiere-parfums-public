@@ -22,6 +22,19 @@ const _spinStyle = document.createElement('style');
 _spinStyle.textContent = '@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}@keyframes blinkGold{0%{opacity:1;box-shadow:0 0 0 rgba(201,169,110,0)}50%{opacity:0.85;box-shadow:0 0 20px rgba(201,169,110,0.6)}100%{opacity:1;box-shadow:0 0 0 rgba(201,169,110,0)}}@keyframes slideUpBanner{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}';
 document.head.appendChild(_spinStyle);
 
+// ── Helpers chargement boutons ────────────────────────────────
+function setBtnLoading(btn) {
+  if (!btn) return;
+  btn._origHTML = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = SVG.loader + ' <span style="opacity:0.7">' + btn.textContent + '</span>';
+}
+function setBtnNormal(btn) {
+  if (!btn) return;
+  btn.disabled = false;
+  btn.innerHTML = btn._origHTML || btn.textContent;
+}
+
 // ── État global ───────────────────────────────────────────────
 let state = {
   currentUser    : null,
@@ -330,7 +343,7 @@ async function doLogin() {
   const pass  = document.getElementById('login-password').value;
   if (!email || !pass) { showToast(__('Remplissez tous les champs'), 'error'); return; }
   const btn = document.querySelector('#form-login .btn-primary.btn-full');
-  if (btn) { btn.disabled = true; btn.classList.add('btn-loading'); }
+  setBtnLoading(btn);
   try {
     const res  = await fetch('/api/login', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -344,9 +357,7 @@ async function doLogin() {
     showToast(__('Bienvenue') + ' ' + data.user.name + ' !', 'success');
     state.cart.length > 0 ? showPage('payment') : showPage('boutique');
   } catch { showToast(__('Erreur réseau'), 'error'); }
-  finally {
-    if (btn) { btn.disabled = false; btn.classList.remove('btn-loading'); }
-  }
+  finally { setBtnNormal(btn); }
 }
 
 async function doRegister() {
@@ -359,7 +370,7 @@ async function doRegister() {
     showToast(__('Tous les champs sont requis'), 'error'); return;
   }
   const btn = document.querySelector('#form-register .btn-primary.btn-full');
-  if (btn) { btn.disabled = true; btn.classList.add('btn-loading'); }
+  setBtnLoading(btn);
   try {
     const res  = await fetch('/api/register', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -373,9 +384,7 @@ async function doRegister() {
     showToast(__('Compte créé') + ' ! ' + name, 'success');
     state.cart.length > 0 ? showPage('payment') : showPage('boutique');
   } catch { showToast(__('Erreur réseau'), 'error'); }
-  finally {
-    if (btn) { btn.disabled = false; btn.classList.remove('btn-loading'); }
-  }
+  finally { setBtnNormal(btn); }
 }
 
 function updateNavUser() {
@@ -795,7 +804,7 @@ async function submitOrder() {
   };
 
   const btn = document.querySelector('#page-payment .btn-primary.btn-full');
-  if (btn) { btn.disabled = true; btn.classList.add('btn-loading'); }
+  setBtnLoading(btn);
 
   try {
     const res = await fetch('/api/orders', {
@@ -816,9 +825,7 @@ async function submitOrder() {
   } catch {
     showToast(__('Erreur réseau'), 'error');
   }
-  finally {
-    if (btn) { btn.disabled = false; btn.classList.remove('btn-loading'); }
-  }
+  finally { setBtnNormal(btn); }
 }
 
 // ── Écran de confirmation post-commande ───────────────────────
@@ -1099,7 +1106,7 @@ async function doAdminLogin() {
   const p = document.getElementById('admin-pass').value;
   if (!u || !p) { showToast(__('Remplissez tous les champs'), 'error'); return; }
   const btn = document.querySelector('#page-admin-login .btn-primary.btn-full');
-  if (btn) { btn.disabled = true; btn.classList.add('btn-loading'); }
+  setBtnLoading(btn);
   try {
     const res  = await fetch('/api/admin/login', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1113,9 +1120,7 @@ async function doAdminLogin() {
     showPage('admin'); renderAdminDashboard();
     showToast(__('Bienvenue Administrateur'), 'success');
   } catch { showToast(__('Erreur réseau'), 'error'); }
-  finally {
-    if (btn) { btn.disabled = false; btn.classList.remove('btn-loading'); }
-  }
+  finally { setBtnNormal(btn); }
 }
 
 function adminLogout() {
