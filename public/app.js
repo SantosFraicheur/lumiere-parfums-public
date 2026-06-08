@@ -1097,6 +1097,9 @@ function renderPaymentSummary() {
 async function doAdminLogin() {
   const u = document.getElementById('admin-user').value;
   const p = document.getElementById('admin-pass').value;
+  if (!u || !p) { showToast(__('Remplissez tous les champs'), 'error'); return; }
+  const btn = document.querySelector('#page-admin-login .btn-primary.btn-full');
+  if (btn) { btn.disabled = true; btn.classList.add('btn-loading'); }
   try {
     const res  = await fetch('/api/admin/login', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1110,6 +1113,9 @@ async function doAdminLogin() {
     showPage('admin'); renderAdminDashboard();
     showToast(__('Bienvenue Administrateur'), 'success');
   } catch { showToast(__('Erreur réseau'), 'error'); }
+  finally {
+    if (btn) { btn.disabled = false; btn.classList.remove('btn-loading'); }
+  }
 }
 
 function adminLogout() {
