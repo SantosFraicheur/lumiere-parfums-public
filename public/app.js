@@ -636,8 +636,12 @@ function createCartBanner() {
     div.style.display = 'none';
   };
   document.getElementById('cart-banner-cart').onclick = function() {
-    div.style.display = 'none';
-    showPage('cart');
+    var btnEl = document.getElementById('cart-banner-cart');
+    if (btnEl) { btnEl.innerHTML = '<span style="opacity:0.7">'+__('Voir Panier')+'</span> <span class="btn-loading-dots"><span></span><span></span><span></span></span>'; btnEl.disabled = true; }
+    setTimeout(function() {
+      div.style.display = 'none';
+      showPage('cart');
+    }, 300);
   };
   return div;
 }
