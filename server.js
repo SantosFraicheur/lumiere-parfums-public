@@ -34,9 +34,9 @@ if (!JWT_SECRET) {
 }
 
 function cloudinaryAccountFromEnv(prefix, label) {
-  const cloudName = process.env[`${prefix}_CLOUD_NAME`];
-  const apiKey = process.env[`${prefix}_API_KEY`];
-  const apiSecret = process.env[`${prefix}_API_SECRET`];
+  const cloudName = String(process.env[`${prefix}_CLOUD_NAME`] || '').trim();
+  const apiKey = String(process.env[`${prefix}_API_KEY`] || '').trim();
+  const apiSecret = String(process.env[`${prefix}_API_SECRET`] || '').trim();
 
   if (!cloudName && !apiKey && !apiSecret) return null;
 
@@ -46,6 +46,11 @@ function cloudinaryAccountFromEnv(prefix, label) {
   }
 
   return { label, cloudName, apiKey, apiSecret };
+}
+
+function maskCloudinaryAccount(account) {
+  if (!account?.cloudName) return account?.label || 'inconnu';
+  return `${account.label}:${account.cloudName}`;
 }
 
 const cloudinaryAccounts = [
@@ -60,20 +65,32 @@ async function uploadToCloudinary(data, options) {
 
   for (const account of cloudinaryAccounts) {
     try {
-      return await cloudinary.uploader.upload(data, {
+      const result = await cloudinary.uploader.upload(data, {
         ...options,
         cloud_name : account.cloudName,
         api_key    : account.apiKey,
         api_secret : account.apiSecret,
         secure     : true,
       });
+      return { ...result, storageAccount: account.label };
     } catch (err) {
       lastError = err;
-      console.error(`Cloudinary ${account.label} upload error:`, err.message);
+      const status = err.http_code ? ` (${err.http_code})` : '';
+      console.error(`Cloudinary ${maskCloudinaryAccount(account)} upload error${status}:`, err.message);
     }
   }
 
   throw lastError || new Error('Aucun compte Cloudinary configuré');
+}
+
+function cloudinaryStatus() {
+  return {
+    enabled: cloudinaryEnabled,
+    accounts: cloudinaryAccounts.map(account => ({
+      label: account.label,
+      cloudName: account.cloudName,
+    })),
+  };
 }
 
 const dbUrl = buildDbUrl();
@@ -786,7 +803,7 @@ pool.on('error', (err) => {
 app.listen(PORT, () => {
   console.log(`Serveur LUMIÈRE démarré sur le port ${PORT}`);
   if (cloudinaryEnabled) {
-    console.log(`Cloudinary actif: ${cloudinaryAccounts.length} compte(s) configuré(s).`);
+    console.log(`Cloudinary actif: ${cloudinaryAccounts.map(maskCloudinaryAccount).join(', ')}`);
   } else {
     console.warn('ATTENTION: aucun compte Cloudinary configuré — uploads désactivés');
   }
@@ -1037,6 +1054,10 @@ function genTrackingCode() {
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
+app.get('/api/admin/storage-status', authenticateAdmin, (_req, res) => {
+  res.json({ cloudinary: cloudinaryStatus() });
+});
+
 
 // ════════════════════════════════════════════════════════════
 //  UPLOAD CLOUDINARY
@@ -1057,7 +1078,11 @@ app.post('/api/upload', authenticateAdmin, [
       quality       : 'auto',
       fetch_format  : 'auto',
     });
-    res.json({ url: result.secure_url, publicId: result.public_id });
+    res.json({
+      url: result.secure_url,
+      publicId: result.public_id,
+      storageAccount: result.storageAccount,
+    });
   } catch (err) {
     console.error('Cloudinary upload error:', err.message);
     res.status(500).json({ error: 'Erreur upload fichier : ' + err.message });
@@ -1077,10 +1102,13 @@ app.post('/api/upload/proof', authenticateUser, [
       resource_type : 'image',
       quality       : 'auto',
     });
-    res.json({ url: result.secure_url });
+    res.json({
+      url: result.secure_url,
+      storageAccount: result.storageAccount,
+    });
   } catch (err) {
     console.error('Cloudinary proof upload error:', err.message);
-    res.status(500).json({ error: 'Erreur upload preuve' });
+    res.status(500).json({ error: 'Erreur upload preuve : ' + err.message });
   }
 });
 

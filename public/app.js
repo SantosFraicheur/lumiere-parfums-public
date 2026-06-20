@@ -348,7 +348,7 @@ async function uploadProofToCloud(dataUri) {
     body   : JSON.stringify({ data: dataUri }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Erreur upload preuve');
+  if (!res.ok) throw new Error(data.error || data.message || 'Erreur upload preuve');
   return data.url;
 }
 
