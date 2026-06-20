@@ -356,7 +356,11 @@ async function uploadProofToCloud(dataUri) {
 //  NAVIGATION
 // ════════════════════════════════════════════════════════════
 function showPage(name) {
-  if ((name === 'payment' || name === 'tracking' || name === 'profile') && !state.currentUser) {
+  if (name === 'payment' && !state.currentUser) {
+    showToast(__('Créez votre compte pour finaliser la commande'), 'warning');
+    return showAuthForCheckout();
+  }
+  if ((name === 'tracking' || name === 'profile') && !state.currentUser) {
     showToast(__('Veuillez vous connecter'), 'warning');
     return showPage('auth');
   }
@@ -376,6 +380,11 @@ function showPage(name) {
 function requireAuth(callback) {
   if (state.currentUser) callback();
   else { showToast(__('Veuillez vous connecter'), 'warning'); showPage('auth'); }
+}
+
+function showAuthForCheckout() {
+  showPage('auth');
+  switchAuthTab('register');
 }
 
 // ════════════════════════════════════════════════════════════
@@ -770,7 +779,11 @@ function removeFromCart(id) {
 
 function goToPayment() {
   if (state.cart.length === 0) { showToast(__('Panier vide'), 'error'); return; }
-  if (!state.currentUser) { showToast(__('Connexion requise'), 'warning'); showPage('auth'); return; }
+  if (!state.currentUser) {
+    showToast(__('Créez votre compte pour finaliser la commande'), 'warning');
+    showAuthForCheckout();
+    return;
+  }
   showPage('payment');
 }
 
@@ -2512,6 +2525,7 @@ const I18N_EXTRA = {
     'Référence de transaction requise':'Référence de transaction requise',
     'Saisissez la référence visible sur votre reçu de virement.':'Saisissez la référence visible sur votre reçu de virement.',
     'Ex: TXN-2026-0001':'Ex: TXN-2026-0001',
+    'Créez votre compte pour finaliser la commande':'Créez votre compte pour finaliser la commande',
   },
   en: {
     'Coffret':'Gift Set',
@@ -2522,6 +2536,7 @@ const I18N_EXTRA = {
     'Référence de transaction requise':'Transaction reference required',
     'Saisissez la référence visible sur votre reçu de virement.':'Enter the reference shown on your transfer receipt.',
     'Ex: TXN-2026-0001':'Ex: TXN-2026-0001',
+    'Créez votre compte pour finaliser la commande':'Create your account to complete the order',
   },
   es: {
     'Coffret':'Cofre',
@@ -2532,6 +2547,7 @@ const I18N_EXTRA = {
     'Référence de transaction requise':'Referencia de transacción requerida',
     'Saisissez la référence visible sur votre reçu de virement.':'Ingrese la referencia visible en su comprobante de transferencia.',
     'Ex: TXN-2026-0001':'Ej: TXN-2026-0001',
+    'Créez votre compte pour finaliser la commande':'Cree su cuenta para finalizar el pedido',
   },
   pt: {
     'Coffret':'Conjunto',
@@ -2542,6 +2558,7 @@ const I18N_EXTRA = {
     'Référence de transaction requise':'Referência da transação obrigatória',
     'Saisissez la référence visible sur votre reçu de virement.':'Insira a referência visível no comprovante da transferência.',
     'Ex: TXN-2026-0001':'Ex: TXN-2026-0001',
+    'Créez votre compte pour finaliser la commande':'Crie sua conta para finalizar o pedido',
   },
   de: {
     'Coffret':'Geschenkset',
@@ -2552,6 +2569,7 @@ const I18N_EXTRA = {
     'Référence de transaction requise':'Transaktionsreferenz erforderlich',
     'Saisissez la référence visible sur votre reçu de virement.':'Geben Sie die Referenz von Ihrem Überweisungsbeleg ein.',
     'Ex: TXN-2026-0001':'Z.B.: TXN-2026-0001',
+    'Créez votre compte pour finaliser la commande':'Erstellen Sie Ihr Konto, um die Bestellung abzuschließen',
   },
   ar: {
     'Coffret':'مجموعة هدايا',
@@ -2562,6 +2580,7 @@ const I18N_EXTRA = {
     'Référence de transaction requise':'مرجع العملية مطلوب',
     'Saisissez la référence visible sur votre reçu de virement.':'أدخل المرجع الظاهر على إيصال التحويل.',
     'Ex: TXN-2026-0001':'مثال: TXN-2026-0001',
+    'Créez votre compte pour finaliser la commande':'أنشئ حسابك لإتمام الطلب',
   },
 };
 
