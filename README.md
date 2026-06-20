@@ -47,8 +47,8 @@ Dans votre projet Railway → **Variables** → ajoutez :
 
 | Variable | Valeur |
 |---|---|
-| `ADMIN_USERNAME` | `admin_lumiere` |
-| `ADMIN_PASSWORD` | `lumi_ere/2025@*` |
+| `ADMIN_USERNAME` | Identifiant admin privé, à créer dans vos variables d'environnement |
+| `ADMIN_PASSWORD` | Mot de passe admin fort, privé et unique |
 | `JWT_SECRET` | Cliquez **Generate** ou tapez une longue chaîne aléatoire |
 | `JWT_EXPIRES_IN` | `7d` |
 | `CLOUDINARY_CLOUD_NAME` | Votre cloud name |
@@ -85,8 +85,7 @@ Réponse attendue : `{"status":"ok"}`
 ## Accès Admin
 
 - Allez sur `https://votre-app.up.railway.app/#admin`
-- **Identifiant :** `admin_lumiere`
-- **Mot de passe :** `lumi_ere/2025@*`
+- Utilisez les valeurs privées configurées dans `ADMIN_USERNAME` et `ADMIN_PASSWORD`
 
 ---
 
