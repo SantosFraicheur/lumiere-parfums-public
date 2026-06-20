@@ -777,6 +777,32 @@ async function initDatabase() {
       CREATE INDEX IF NOT EXISTS idx_orders_trackingcode ON orders("trackingCode");
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS transaction_ref VARCHAR(100) NOT NULL DEFAULT '';
       UPDATE products SET category='Coffret' WHERE category IN ('Femme', 'femme', 'Homme', 'homme', 'Mixte', 'mixte');
+      DO $$
+      DECLARE
+        amouage_created TIMESTAMPTZ;
+        chanel_created  TIMESTAMPTZ;
+      BEGIN
+        SELECT created_at INTO amouage_created
+        FROM products
+        WHERE category='Miniatures' AND name ILIKE '%AMOUAGE%'
+        ORDER BY created_at DESC
+        LIMIT 1;
+
+        SELECT created_at INTO chanel_created
+        FROM products
+        WHERE category='Miniatures'
+          AND (name ILIKE '%ALURE%CHANEL%' OR name ILIKE '%ALLURE%CHANEL%')
+        ORDER BY created_at DESC
+        LIMIT 1;
+
+        IF amouage_created IS NOT NULL AND chanel_created IS NOT NULL THEN
+          UPDATE products
+          SET category='Coffret'
+          WHERE category='Miniatures'
+            AND created_at BETWEEN LEAST(amouage_created, chanel_created)
+                               AND GREATEST(amouage_created, chanel_created);
+        END IF;
+      END $$;
       CREATE TABLE IF NOT EXISTS order_items (
         id           SERIAL PRIMARY KEY,
         order_id     VARCHAR(50) REFERENCES orders(id) ON DELETE CASCADE,
