@@ -1243,17 +1243,17 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
       <div class="review-form-row">
         <div class="form-group">
           <label data-i18n="Votre nom">Votre nom</label>
-          <input type="text" id="review-name" placeholder="Sophie L.">
+          <input type="text" id="review-name" placeholder="Sophie L." autocomplete="name" minlength="2" maxlength="80">
         </div>
         <div class="form-group">
           <label data-i18n="Produit">Produit</label>
-          <input type="text" id="review-product" placeholder="Flora, Coffret...">
+          <input type="text" id="review-product" placeholder="Flora, Coffret..." autocomplete="off" maxlength="120">
         </div>
       </div>
       <div class="review-form-row">
         <div class="form-group" style="flex:3">
           <label data-i18n="Votre avis">Votre avis</label>
-          <textarea id="review-content" placeholder="Partagez votre expérience..."></textarea>
+          <textarea id="review-content" placeholder="Partagez votre expérience..." minlength="3" maxlength="1000"></textarea>
         </div>
         <div class="form-group" style="flex:1">
           <label data-i18n="Note">Note</label>

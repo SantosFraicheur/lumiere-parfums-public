@@ -60,6 +60,8 @@ function isLocalDatabaseUrl(url) {
 const previewMode = !dbUrl || isLocalDatabaseUrl(dbUrl) || process.env.PREVIEW_MODE === '1';
 
 const PRODUCT_CATEGORIES = ['Coffret', 'Miniatures'];
+const HTML_TAG_PATTERN = /<[^>]*>/;
+const CONTROL_CHARS_PATTERN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
 
 function normalizeProductCategory(category) {
   const value = String(category || '').trim();
@@ -68,6 +70,21 @@ function normalizeProductCategory(category) {
   if (lower === 'femme' || lower === 'homme' || lower === 'mixte' || lower === 'coffret' || lower === 'coffrets') return 'Coffret';
   if (lower === 'miniature' || lower === 'miniatures') return 'Miniatures';
   return PRODUCT_CATEGORIES.includes(value) ? value : PRODUCT_CATEGORIES[0];
+}
+
+function cleanTextInput(value) {
+  return String(value || '')
+    .replace(CONTROL_CHARS_PATTERN, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function rejectHtml(value) {
+  if (!value) return true;
+  if (HTML_TAG_PATTERN.test(String(value))) {
+    throw new Error('Les balises HTML ne sont pas autorisées');
+  }
+  return true;
 }
 
 const previewState = {
@@ -1658,10 +1675,22 @@ async function migrateReviewsTable() {
 }
 
 app.post('/api/reviews', [
-  body('name').trim().notEmpty().isLength({ max: 255 }),
-  body('content').trim().notEmpty().isLength({ max: 1000 }),
-  body('product').optional().trim().isLength({ max: 255 }),
-  body('rating').optional().isInt({ min: 1, max: 5 }),
+  body('name')
+    .customSanitizer(cleanTextInput)
+    .notEmpty().withMessage('Nom requis')
+    .isLength({ min: 2, max: 80 }).withMessage('Nom invalide')
+    .custom(rejectHtml),
+  body('content')
+    .customSanitizer(cleanTextInput)
+    .notEmpty().withMessage('Avis requis')
+    .isLength({ min: 3, max: 1000 }).withMessage('Avis invalide')
+    .custom(rejectHtml),
+  body('product')
+    .optional({ checkFalsy: true })
+    .customSanitizer(cleanTextInput)
+    .isLength({ max: 120 }).withMessage('Produit invalide')
+    .custom(rejectHtml),
+  body('rating').optional().isInt({ min: 1, max: 5 }).toInt(),
 ], validate, async (req, res) => {
   await migrateReviewsTable();
   const { name, content, product, rating } = req.body;

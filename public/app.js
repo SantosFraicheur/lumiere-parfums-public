@@ -73,6 +73,17 @@ function escHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+function normalizePlainText(str) {
+  return String(str || '')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function hasHtmlTags(str) {
+  return /<[^>]*>/.test(String(str || ''));
+}
+
 function normalizeProductCategory(category) {
   const value = String(category || '').trim();
   if (!value) return PRODUCT_CATEGORIES[0];
@@ -1942,14 +1953,24 @@ async function loadReviews() {
 }
 
 async function submitReview() {
-  const name = document.getElementById('review-name').value.trim();
-  const product = document.getElementById('review-product').value.trim();
-  const content = document.getElementById('review-content').value.trim();
+  const nameEl = document.getElementById('review-name');
+  const productEl = document.getElementById('review-product');
+  const contentEl = document.getElementById('review-content');
+  const name = normalizePlainText(nameEl.value);
+  const product = normalizePlainText(productEl.value);
+  const content = normalizePlainText(contentEl.value);
   const rating = parseInt(document.getElementById('review-rating').value) || 5;
   const msg = document.getElementById('review-form-msg');
   
   if (!name || !content) {
     msg.textContent = __('Veuillez remplir votre nom et votre avis');
+    msg.style.display = 'block';
+    msg.style.color = 'var(--red)';
+    return;
+  }
+
+  if (hasHtmlTags(name) || hasHtmlTags(product) || hasHtmlTags(content)) {
+    msg.textContent = __('Les balises HTML ne sont pas autorisées');
     msg.style.display = 'block';
     msg.style.color = 'var(--red)';
     return;
