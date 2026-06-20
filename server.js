@@ -33,18 +33,48 @@ if (!JWT_SECRET) {
   process.exit(1);
 }
 
-cloudinary.config({
-  cloud_name : process.env.CLOUDINARY_CLOUD_NAME,
-  api_key    : process.env.CLOUDINARY_API_KEY,
-  api_secret : process.env.CLOUDINARY_API_SECRET,
-  secure     : true,
-});
+function cloudinaryAccountFromEnv(prefix, label) {
+  const cloudName = process.env[`${prefix}_CLOUD_NAME`];
+  const apiKey = process.env[`${prefix}_API_KEY`];
+  const apiSecret = process.env[`${prefix}_API_SECRET`];
 
-const cloudinaryEnabled = !!(
-  process.env.CLOUDINARY_CLOUD_NAME &&
-  process.env.CLOUDINARY_API_KEY &&
-  process.env.CLOUDINARY_API_SECRET
-);
+  if (!cloudName && !apiKey && !apiSecret) return null;
+
+  if (!cloudName || !apiKey || !apiSecret) {
+    console.warn(`Cloudinary ${label} ignoré: configuration incomplète (${prefix}_*)`);
+    return null;
+  }
+
+  return { label, cloudName, apiKey, apiSecret };
+}
+
+const cloudinaryAccounts = [
+  cloudinaryAccountFromEnv('CLOUDINARY', 'principal'),
+  cloudinaryAccountFromEnv('CLOUDINARY_FALLBACK', 'secondaire'),
+].filter(Boolean);
+
+const cloudinaryEnabled = cloudinaryAccounts.length > 0;
+
+async function uploadToCloudinary(data, options) {
+  let lastError = null;
+
+  for (const account of cloudinaryAccounts) {
+    try {
+      return await cloudinary.uploader.upload(data, {
+        ...options,
+        cloud_name : account.cloudName,
+        api_key    : account.apiKey,
+        api_secret : account.apiSecret,
+        secure     : true,
+      });
+    } catch (err) {
+      lastError = err;
+      console.error(`Cloudinary ${account.label} upload error:`, err.message);
+    }
+  }
+
+  throw lastError || new Error('Aucun compte Cloudinary configuré');
+}
 
 const dbUrl = buildDbUrl();
 function isLocalDatabaseUrl(url) {
@@ -755,7 +785,11 @@ pool.on('error', (err) => {
 
 app.listen(PORT, () => {
   console.log(`Serveur LUMIÈRE démarré sur le port ${PORT}`);
-  if (!cloudinaryEnabled) console.warn('ATTENTION: Cloudinary non configuré — uploads désactivés');
+  if (cloudinaryEnabled) {
+    console.log(`Cloudinary actif: ${cloudinaryAccounts.length} compte(s) configuré(s).`);
+  } else {
+    console.warn('ATTENTION: aucun compte Cloudinary configuré — uploads désactivés');
+  }
   if (!previewMode) {
     connectWithRetry();
   } else {
@@ -1017,7 +1051,7 @@ app.post('/api/upload', authenticateAdmin, [
   }
   const { data, resourceType = 'auto' } = req.body;
   try {
-    const result = await cloudinary.uploader.upload(data, {
+    const result = await uploadToCloudinary(data, {
       folder        : 'lumiere',
       resource_type : resourceType,
       quality       : 'auto',
@@ -1038,7 +1072,7 @@ app.post('/api/upload/proof', authenticateUser, [
   }
   const { data } = req.body;
   try {
-    const result = await cloudinary.uploader.upload(data, {
+    const result = await uploadToCloudinary(data, {
       folder        : 'lumiere/proofs',
       resource_type : 'image',
       quality       : 'auto',

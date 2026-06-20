@@ -54,6 +54,9 @@ Dans votre projet Railway → **Variables** → ajoutez :
 | `CLOUDINARY_CLOUD_NAME` | Votre cloud name |
 | `CLOUDINARY_API_KEY` | Votre API key |
 | `CLOUDINARY_API_SECRET` | Votre API secret |
+| `CLOUDINARY_FALLBACK_CLOUD_NAME` | Cloud name du 2e compte Cloudinary (optionnel) |
+| `CLOUDINARY_FALLBACK_API_KEY` | API key du 2e compte Cloudinary (optionnel) |
+| `CLOUDINARY_FALLBACK_API_SECRET` | API secret du 2e compte Cloudinary (optionnel) |
 | `NODE_ENV` | `production` |
 
 > `DATABASE_URL` est ajouté automatiquement par Railway — ne pas le toucher.
@@ -153,5 +156,5 @@ lumiere-parfums/
 | POST | `/api/videos` | Admin | Ajouter vidéo |
 | DELETE | `/api/videos/:id` | Admin | Supprimer vidéo |
 | GET | `/api/customers` | Admin | Liste clients |
-| POST | `/api/upload` | Admin | Upload image/vidéo → Cloudinary |
-| POST | `/api/upload/proof` | Client | Upload preuve paiement → Cloudinary |
+| POST | `/api/upload` | Admin | Upload image/vidéo → Cloudinary avec fallback |
+| POST | `/api/upload/proof` | Client | Upload preuve paiement → Cloudinary avec fallback |
