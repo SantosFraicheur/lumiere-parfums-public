@@ -1335,7 +1335,7 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
         <p class="auth-sub" data-i18n="auth-login-desc">Connectez-vous à votre compte</p>
         <div class="form-group">
           <label>Adresse Email</label>
-          <input type="email" id="login-email" placeholder="votre@email.com" autocomplete="email">
+          <input type="email" id="login-email" placeholder="votre@email.com" autocomplete="email" maxlength="255">
         </div>
         <div class="form-group">
           <label>Mot de Passe</label>
@@ -1349,19 +1349,19 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
         <p class="auth-sub" data-i18n="auth-register-desc">Créez votre compte</p>
         <div class="form-group">
           <label>Prénom &amp; Nom</label>
-          <input type="text" id="reg-name" placeholder="Santos Santos" autocomplete="name">
+          <input type="text" id="reg-name" placeholder="Santos Santos" autocomplete="name" minlength="2" maxlength="80">
         </div>
         <div class="form-group">
           <label>Adresse Email</label>
-          <input type="email" id="reg-email" placeholder="votre@email.com" autocomplete="email">
+          <input type="email" id="reg-email" placeholder="votre@email.com" autocomplete="email" maxlength="255">
         </div>
         <div class="form-group">
           <label>Téléphone</label>
-          <input type="tel" id="reg-phone" placeholder="+1 XXX XXX XXXX" autocomplete="tel">
+          <input type="tel" id="reg-phone" placeholder="+1 XXX XXX XXXX" autocomplete="tel" minlength="5" maxlength="50">
         </div>
         <div class="form-group">
           <label>Adresse de livraison</label>
-          <input type="text" id="reg-address" placeholder="Votre adresse complète" autocomplete="street-address">
+          <input type="text" id="reg-address" placeholder="Votre adresse complète" autocomplete="street-address" minlength="5" maxlength="500">
         </div>
         <div class="form-group">
           <label>Mot de Passe</label>
@@ -1424,7 +1424,7 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
       </div>
       <div class="form-group">
         <label data-i18n="Référence de la transaction">Référence de la transaction</label>
-        <input type="text" id="transaction-ref" class="payment-reference-field" placeholder="Ex: TXN-2026-0001" data-i18n="Ex: TXN-2026-0001" autocomplete="off" spellcheck="false">
+        <input type="text" id="transaction-ref" class="payment-reference-field" placeholder="Ex: TXN-2026-0001" data-i18n="Ex: TXN-2026-0001" autocomplete="off" spellcheck="false" minlength="3" maxlength="100">
         <p class="payment-reference-hint" data-i18n="Saisissez la référence visible sur votre reçu de virement.">Saisissez la référence visible sur votre reçu de virement.</p>
       </div>
       <div class="form-group">
@@ -1438,7 +1438,7 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
       </div>
       <div class="form-group">
         <label data-i18n="Adresse de livraison">Adresse de Livraison</label>
-        <input type="text" id="delivery-address" placeholder="Adresse complète de livraison" data-i18n="Adresse complète de livraison" autocomplete="street-address">
+        <input type="text" id="delivery-address" placeholder="Adresse complète de livraison" data-i18n="Adresse complète de livraison" autocomplete="street-address" minlength="5" maxlength="500">
       </div>
       <button class="btn-primary btn-full" data-i18n="submit-order" onclick="submitOrder()">Soumettre la Commande</button>
     </div>
@@ -1478,7 +1478,7 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
       <div class="profile-section-title" data-i18n="profile-edit-title">Modifier le nom</div>
       <div class="form-group" style="margin-bottom:16px">
         <label data-i18n="profile-name-label">Nom complet</label>
-        <input type="text" id="profile-name-input" autocomplete="name">
+        <input type="text" id="profile-name-input" autocomplete="name" minlength="2" maxlength="80">
       </div>
       <button class="btn-primary btn-full" onclick="saveProfileName()" data-i18n="profile-save-btn">Enregistrer</button>
     </div>

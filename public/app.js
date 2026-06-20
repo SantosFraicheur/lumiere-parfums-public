@@ -368,7 +368,7 @@ function switchAuthTab(tab) {
 }
 
 async function doLogin() {
-  const email = document.getElementById('login-email').value.trim();
+  const email = normalizePlainText(document.getElementById('login-email').value);
   const pass  = document.getElementById('login-password').value;
   if (!email || !pass) { showToast(__('Remplissez tous les champs'), 'error'); return; }
   const btn = document.querySelector('#form-login .btn-primary.btn-full');
@@ -390,13 +390,16 @@ async function doLogin() {
 }
 
 async function doRegister() {
-  const name    = document.getElementById('reg-name').value.trim();
-  const email   = document.getElementById('reg-email').value.trim();
-  const phone   = document.getElementById('reg-phone').value.trim();
-  const address = document.getElementById('reg-address').value.trim();
+  const name    = normalizePlainText(document.getElementById('reg-name').value);
+  const email   = normalizePlainText(document.getElementById('reg-email').value);
+  const phone   = normalizePlainText(document.getElementById('reg-phone').value);
+  const address = normalizePlainText(document.getElementById('reg-address').value);
   const pass    = document.getElementById('reg-password').value;
   if (!name || !email || !phone || !address || !pass) {
     showToast(__('Tous les champs sont requis'), 'error'); return;
+  }
+  if (hasHtmlTags(name) || hasHtmlTags(phone) || hasHtmlTags(address)) {
+    showToast(__('Les balises HTML ne sont pas autorisées'), 'error'); return;
   }
   const btn = document.querySelector('#form-register .btn-primary.btn-full');
   setBtnLoading(btn);
@@ -824,12 +827,15 @@ async function handleProofUpload(e) {
 }
 
 async function submitOrder() {
-  const transactionRef = document.getElementById('transaction-ref')?.value.trim().toUpperCase() || '';
+  const transactionRef = normalizePlainText(document.getElementById('transaction-ref')?.value).toUpperCase();
   if (!transactionRef) { showToast(__('Référence de transaction requise'), 'error'); return; }
   if (!state.proofUrl) { showToast(__('Ajoutez une preuve de paiement'), 'error'); return; }
-  const address = document.getElementById('delivery-address').value.trim();
+  const address = normalizePlainText(document.getElementById('delivery-address').value);
   if (!address) { showToast(__('Adresse de livraison requise'), 'error'); return; }
   if (state.cart.length === 0) { showToast(__('Panier vide'), 'error'); return; }
+  if (hasHtmlTags(transactionRef) || hasHtmlTags(address)) {
+    showToast(__('Les balises HTML ne sont pas autorisées'), 'error'); return;
+  }
 
   const baseTotal = state.cart.reduce((s, i) => s + i.price * i.qty, 0);
   const total     = state.activePromo ? state.activePromo.finalTotal : baseTotal;
@@ -1686,8 +1692,9 @@ async function handleAvatarUpload(e) {
 
 async function saveProfileName() {
   const input = document.getElementById('profile-name-input');
-  const name  = input ? input.value.trim() : '';
+  const name  = input ? normalizePlainText(input.value) : '';
   if (!name) { showToast(__('Le nom ne peut pas être vide'), 'error'); return; }
+  if (hasHtmlTags(name)) { showToast(__('Les balises HTML ne sont pas autorisées'), 'error'); return; }
   try {
     const res = await fetch('/api/auth/profile', {
       method: 'PATCH', headers: userHeaders(),

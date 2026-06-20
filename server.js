@@ -87,6 +87,19 @@ function rejectHtml(value) {
   return true;
 }
 
+const safeTextBody = (field, { min = 1, max = 255, required = true, message = 'Champ invalide' } = {}) => {
+  let chain = body(field);
+  if (!required) chain = chain.optional({ checkFalsy: true });
+  return chain
+    .customSanitizer(cleanTextInput)
+    .custom((value) => {
+      if (!required && !value) return true;
+      if (!value || value.length < min || value.length > max) throw new Error(message);
+      return true;
+    })
+    .custom(rejectHtml);
+};
+
 const previewState = {
   adminHash: ADMIN_PASSWORD ? bcrypt.hashSync(ADMIN_PASSWORD, 12) : null,
   customers: [],
@@ -267,7 +280,13 @@ function createPreviewPool() {
       }
 
       if (q.startsWith('select') && q.includes('from products')) {
-        const rows = previewState.products.map(p => ({
+        const ids = q.includes('where id = any') && Array.isArray(params[0])
+          ? new Set(params[0].map(Number))
+          : null;
+        const source = ids
+          ? previewState.products.filter(p => ids.has(Number(p.id)))
+          : previewState.products;
+        const rows = source.map(p => ({
           ...p,
           images: Array.isArray(p.images) ? [...p.images] : [],
         }));
@@ -1027,10 +1046,10 @@ app.post('/api/upload/proof', authenticateUser, [
 
 app.post('/api/register', authLimiter, [
   body('email').isEmail().withMessage('Email invalide').normalizeEmail(),
-  body('name').trim().notEmpty().withMessage('Nom requis').isLength({ max: 255 }),
+  safeTextBody('name', { min: 2, max: 80, message: 'Nom invalide' }),
   body('password').isLength({ min: 6 }).withMessage('Mot de passe : 6 caractères minimum'),
-  body('phone').trim().notEmpty().withMessage('Téléphone requis').isLength({ max: 50 }),
-  body('address').trim().notEmpty().withMessage('Adresse requise').isLength({ max: 1000 }),
+  safeTextBody('phone', { min: 5, max: 50, message: 'Téléphone invalide' }),
+  safeTextBody('address', { min: 5, max: 500, message: 'Adresse invalide' }),
 ], validate, async (req, res) => {
   const { name, email, phone, address, password } = req.body;
   try {
@@ -1089,7 +1108,7 @@ async function migrateCustomersColumns() {
 
 // ── Modifier le profil (nom) ──────────────────────────────────
 app.patch('/api/auth/profile', authenticateUser, [
-  body('name').trim().notEmpty().withMessage('Nom requis'),
+  safeTextBody('name', { min: 2, max: 80, message: 'Nom invalide' }),
 ], validate, async (req, res) => {
   const { name } = req.body;
   try {
@@ -1292,24 +1311,46 @@ app.get('/api/orders', authenticateAdmin, async (_req, res) => {
 
 // POST /api/orders — IDs générés côté serveur (plus de collision possible)
 app.post('/api/orders', authenticateUser, [
-  body('customer').trim().notEmpty().isLength({ max: 255 }),
-  body('total').isInt({ min: 0 }),
-  body('address').trim().notEmpty().isLength({ max: 1000 }),
+  safeTextBody('customer', { min: 2, max: 80, message: 'Nom client invalide' }),
+  body('total').optional().isInt({ min: 0 }),
+  safeTextBody('address', { min: 5, max: 500, message: 'Adresse invalide' }),
   body('items').isArray({ min: 1 }),
-  body('transactionRef').trim().notEmpty().isLength({ max: 100 }).withMessage('Référence de transaction requise'),
-  body('proofUrl').notEmpty().withMessage('Preuve de paiement requise'),
-  body('promoCode').optional().trim().isLength({ max: 50 }),
+  body('items.*.id').isInt({ min: 1 }).withMessage('Produit invalide'),
+  body('items.*.qty').optional().isInt({ min: 1, max: 99 }).withMessage('Quantité invalide'),
+  body('items.*.quantity').optional().isInt({ min: 1, max: 99 }).withMessage('Quantité invalide'),
+  safeTextBody('transactionRef', { min: 3, max: 100, message: 'Référence de transaction requise' }),
+  body('proofUrl').notEmpty().withMessage('Preuve de paiement requise').isURL({ protocols: ['https'], require_protocol: true }).withMessage('Preuve de paiement invalide'),
+  body('promoCode').optional({ checkFalsy: true }).trim().isLength({ max: 50 }).matches(/^[A-Z0-9_-]+$/i).withMessage('Code promo invalide'),
 ], validate, async (req, res) => {
-  const { customer, items = [], total, address, transactionRef, proofUrl, promoCode } = req.body;
+  const { customer, items = [], address, transactionRef, proofUrl, promoCode } = req.body;
   const userId      = req.user.email;
   const id          = genOrderId();
   const trackingCode = genTrackingCode();
   try {
-    const baseTotal = items.reduce((sum, item) => {
-      const qty = Number(item.qty ?? item.quantity ?? 0);
-      const price = Number(item.price ?? 0);
-      return sum + (qty > 0 ? qty : 0) * (price > 0 ? price : 0);
-    }, 0);
+    const requestedItems = items.map(item => ({
+      id: Number(item.id),
+      quantity: Number(item.qty ?? item.quantity ?? 1),
+    }));
+    const productIds = [...new Set(requestedItems.map(item => item.id))];
+    const { rows: products } = await pool.query(
+      'SELECT id, name, price FROM products WHERE id = ANY($1::bigint[])',
+      [productIds]
+    );
+    const productById = new Map(products.map(product => [Number(product.id), product]));
+    if (productById.size !== productIds.length) {
+      return res.status(400).json({ error: 'Produit invalide dans la commande' });
+    }
+
+    const orderItems = requestedItems.map(item => {
+      const product = productById.get(item.id);
+      return {
+        id: item.id,
+        name: product.name,
+        quantity: item.quantity,
+        price: Number(product.price),
+      };
+    });
+    const baseTotal = orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
     let finalTotal = baseTotal;
     let promoToIncrement = null;
@@ -1335,12 +1376,12 @@ app.post('/api/orders', authenticateUser, [
     await pool.query(
       `INSERT INTO orders (id, "userId", customer, total, status, address, "trackingCode", transaction_ref, proof_url)
        VALUES ($1,$2,$3,$4,'pending',$5,$6,$7,$8)`,
-      [id, userId, customer, finalTotal, address, trackingCode, transactionRef.trim(), proofUrl]
+      [id, userId, customer, finalTotal, address, trackingCode, transactionRef, proofUrl]
     );
-    for (const item of items) {
+    for (const item of orderItems) {
       await pool.query(
         'INSERT INTO order_items (order_id, product_id, product_name, quantity, price) VALUES ($1,$2,$3,$4,$5)',
-        [id, item.id, item.name || item.product_name, item.qty || item.quantity, item.price]
+        [id, item.id, item.name, item.quantity, item.price]
       );
     }
     if (promoToIncrement) await incrementPromoUsage(promoToIncrement);
