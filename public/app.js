@@ -77,8 +77,8 @@ function normalizeProductCategory(category) {
   const value = String(category || '').trim();
   if (!value) return PRODUCT_CATEGORIES[0];
   const lower = value.toLowerCase();
-  if (lower === 'femme' || lower === 'coffret' || lower === 'coffrets') return 'Coffret';
-  if (lower === 'homme' || lower === 'mixte' || lower === 'miniature' || lower === 'miniatures') return 'Miniatures';
+  if (lower === 'femme' || lower === 'homme' || lower === 'mixte' || lower === 'coffret' || lower === 'coffrets') return 'Coffret';
+  if (lower === 'miniature' || lower === 'miniatures') return 'Miniatures';
   return PRODUCT_CATEGORIES.includes(value) ? value : PRODUCT_CATEGORIES[0];
 }
 
@@ -229,7 +229,7 @@ const _reviewTranslations = {
 function translateContent(text) {
   const lang = _currentLang || 'fr';
   if (text === 'Parfums Femme') return __('Coffrets');
-  if (text === 'Parfums Homme') return __('Miniatures');
+  if (text === 'Parfums Homme') return __('Coffrets');
   if (_reviewTranslations[text] && _reviewTranslations[text][lang]) {
     return _reviewTranslations[text][lang];
   }

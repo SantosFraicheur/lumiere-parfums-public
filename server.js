@@ -65,8 +65,8 @@ function normalizeProductCategory(category) {
   const value = String(category || '').trim();
   if (!value) return PRODUCT_CATEGORIES[0];
   const lower = value.toLowerCase();
-  if (lower === 'femme' || lower === 'coffret' || lower === 'coffrets') return 'Coffret';
-  if (lower === 'homme' || lower === 'mixte' || lower === 'miniature' || lower === 'miniatures') return 'Miniatures';
+  if (lower === 'femme' || lower === 'homme' || lower === 'mixte' || lower === 'coffret' || lower === 'coffrets') return 'Coffret';
+  if (lower === 'miniature' || lower === 'miniatures') return 'Miniatures';
   return PRODUCT_CATEGORIES.includes(value) ? value : PRODUCT_CATEGORIES[0];
 }
 
@@ -776,8 +776,7 @@ async function initDatabase() {
       CREATE INDEX IF NOT EXISTS idx_orders_userid       ON orders("userId");
       CREATE INDEX IF NOT EXISTS idx_orders_trackingcode ON orders("trackingCode");
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS transaction_ref VARCHAR(100) NOT NULL DEFAULT '';
-      UPDATE products SET category='Coffret' WHERE category IN ('Femme', 'femme');
-      UPDATE products SET category='Miniatures' WHERE category IN ('Homme', 'homme', 'Mixte', 'mixte');
+      UPDATE products SET category='Coffret' WHERE category IN ('Femme', 'femme', 'Homme', 'homme', 'Mixte', 'mixte');
       CREATE TABLE IF NOT EXISTS order_items (
         id           SERIAL PRIMARY KEY,
         order_id     VARCHAR(50) REFERENCES orders(id) ON DELETE CASCADE,
