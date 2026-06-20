@@ -111,6 +111,29 @@ function populateProductCategorySelects() {
   });
 }
 
+function isCloudinaryUrl(url) {
+  try {
+    const parsed = new URL(String(url || ''));
+    return parsed.protocol === 'https:' && parsed.hostname === 'res.cloudinary.com';
+  } catch (_) {
+    return false;
+  }
+}
+
+function getVideoPoster(url) {
+  if (!isCloudinaryUrl(url)) return '';
+  return String(url).replace('/video/upload/', '/video/upload/so_0,w_900,h_506,c_fill,q_auto,f_jpg/').replace(/\.[a-z0-9]+(\?.*)?$/i, '.jpg');
+}
+
+function formatVideoDate(value) {
+  if (!value) return '';
+  try {
+    return new Date(value).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch (_) {
+    return '';
+  }
+}
+
 function saveState() {
   localStorage.setItem('lumiere_state', JSON.stringify({
     currentUser  : state.currentUser,
@@ -1510,44 +1533,123 @@ function renderVideos() {
   const grid = document.getElementById('videos-grid');
   if (!grid) return;
   if (state.videos.length === 0) {
-    grid.innerHTML = "<p style='text-align:center;color:var(--text-dim);padding:60px 0'>Aucune vidéo disponible pour le moment</p>";
+    grid.innerHTML = `<div class="video-empty">${__('Aucune vidéo disponible pour le moment')}</div>`;
     return;
   }
-  grid.innerHTML = state.videos.map(v => `
-    <div style="background:var(--dark-2);border:1px solid rgba(201,169,110,0.1);padding:24px">
-      <h3 style="font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--cream);margin-bottom:16px">${escHtml(v.title)}</h3>
-      <video src="${escHtml(v.url)}" controls style="width:100%;max-height:480px;background:#000"></video>
+  grid.innerHTML = state.videos.map((v, index) => {
+    const poster = getVideoPoster(v.url);
+    const date = formatVideoDate(v.created_at);
+    return `
+    <div class="video-card" role="button" tabindex="0" onclick="openVideoModal(${index})" onkeydown="handleVideoCardKey(event, ${index})">
+      <div class="video-thumb">
+        ${poster ? `<img src="${escHtml(poster)}" alt="${escHtml(v.title)}" loading="lazy" onerror="this.remove()">` : ''}
+        ${poster ? '' : `<div class="video-thumb-placeholder">${SVG.perfume}</div>`}
+        <div class="video-play" aria-hidden="true">
+          <i data-lucide="play"></i>
+        </div>
+      </div>
+      <div class="video-meta">
+        <div class="video-kicker">LUMIÈRE VIDEO</div>
+        <div class="video-title">${escHtml(v.title)}</div>
+        ${date ? `<div class="video-date">${escHtml(date)}</div>` : ''}
+      </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function handleVideoCardKey(event, index) {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    openVideoModal(index);
+  }
+}
+
+function openVideoModal(index) {
+  const video = state.videos[index];
+  if (!video) return;
+  const modal = document.getElementById('modal-video');
+  const title = document.getElementById('modal-video-title');
+  const player = document.getElementById('modal-video-player');
+  if (!modal || !title || !player) return;
+  document.querySelectorAll('video').forEach(v => {
+    if (v !== player) {
+      try { v.pause(); } catch (_) {}
+    }
+  });
+  title.textContent = video.title || '';
+  player.src = video.url;
+  player.poster = getVideoPoster(video.url);
+  player.currentTime = 0;
+  modal.classList.add('open');
+  player.play().catch(() => {});
+}
+
+function closeVideoModal() {
+  const player = document.getElementById('modal-video-player');
+  if (player) {
+    try { player.pause(); } catch (_) {}
+    player.removeAttribute('src');
+    player.removeAttribute('poster');
+    player.load();
+  }
+  const modal = document.getElementById('modal-video');
+  if (modal) modal.classList.remove('open');
 }
 
 function renderAdminVideos() {
   const box = document.getElementById('admin-videos-list');
   if (!box) return;
   if (state.videos.length === 0) { box.innerHTML = '<p style="color:var(--text-dim);font-size:13px">Aucune vidéo publiée</p>'; return; }
-  box.innerHTML = state.videos.map(v => `
-    <div style="margin-bottom:16px;padding:16px;background:var(--dark-2);border:1px solid rgba(201,169,110,0.1);display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">
-      <div style="flex:1;min-width:200px">
-        <div style="color:var(--cream);font-family:'Cormorant Garamond',serif;font-size:18px;margin-bottom:8px">${escHtml(v.title)}</div>
-        <video src="${escHtml(v.url)}" controls style="width:100%;max-width:300px;border-radius:4px;background:#000"></video>
+  box.innerHTML = state.videos.map(v => {
+    const poster = getVideoPoster(v.url);
+    return `
+    <div class="admin-video-item">
+      <div class="admin-video-preview">
+        ${poster ? `<img src="${escHtml(poster)}" alt="${escHtml(v.title)}" loading="lazy" onerror="this.style.display='none'">` : `<video src="${escHtml(v.url)}" muted preload="metadata"></video>`}
       </div>
-      <button class="action-btn btn-danger" style="flex-shrink:0" onclick="deleteVideo(${v.id})">${__('Supprimer')}</button>
+      <div>
+        <div class="admin-video-title">${escHtml(v.title)}</div>
+        <div class="admin-video-date">${escHtml(formatVideoDate(v.created_at) || 'Vidéo publiée')}</div>
+      </div>
+      <button class="action-btn btn-danger" onclick="deleteVideo(${v.id})">${__('Supprimer')}</button>
     </div>
-  `).join('');
+  `;
+  }).join('');
+}
+
+function previewSelectedVideo(e) {
+  const file = e.target.files && e.target.files[0];
+  const wrap = document.getElementById('video-upload-preview');
+  const player = document.getElementById('video-upload-preview-player');
+  if (!wrap || !player) return;
+  if (!file) {
+    wrap.style.display = 'none';
+    player.removeAttribute('src');
+    return;
+  }
+  player.src = URL.createObjectURL(file);
+  wrap.style.display = 'block';
 }
 
 // Upload vidéo → Cloudinary → DB
 async function uploadVideo() {
-  const title     = document.getElementById('video-title').value.trim();
+  const title     = normalizePlainText(document.getElementById('video-title').value);
   const fileInput = document.getElementById('video-file');
   const file      = fileInput && fileInput.files[0];
   const statusDiv = document.getElementById('video-upload-status');
+  const allowedTypes = ['video/mp4', 'video/webm', 'video/quicktime'];
 
   if (!title) { showToast(__('Titre requis'), 'error'); return; }
+  if (hasHtmlTags(title)) { showToast(__('Les balises HTML ne sont pas autorisées'), 'error'); return; }
   if (!file)  { showToast(__('Fichier vidéo requis'), 'error'); return; }
+  if (!allowedTypes.includes(file.type)) {
+    showToast(__('Format vidéo non supporté'), 'error'); return;
+  }
 
   // Vérification taille fichier
-  const maxMB = 400;
+  const maxMB = 120;
   if (file.size > maxMB * 1024 * 1024) {
     showToast(__('Fichier trop lourd') + ' (max ' + maxMB + ' Mo)', 'error'); return;
   }
@@ -1567,6 +1669,7 @@ async function uploadVideo() {
     if (!res.ok) { showToast(data.error || __('Erreur enregistrement vidéo'), 'error'); statusDiv.style.display = 'none'; return; }
     document.getElementById('video-title').value = '';
     fileInput.value = '';
+    previewSelectedVideo({ target: { files: [] } });
     statusDiv.style.display = 'none';
     showToast(__('Vidéo publiée avec succès'), 'success'); listenVideos();
   } catch (err) {
@@ -1587,11 +1690,21 @@ async function deleteVideo(id) {
 // ════════════════════════════════════════════════════════════
 //  MODALS
 // ════════════════════════════════════════════════════════════
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModal(id) {
+  if (id === 'modal-video') {
+    closeVideoModal();
+    return;
+  }
+  document.getElementById(id).classList.remove('open');
+}
 document.addEventListener('DOMContentLoaded', () => {
   populateProductCategorySelects();
   document.querySelectorAll('.modal-overlay').forEach(m =>
-    m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); })
+    m.addEventListener('click', e => {
+      if (e.target !== m) return;
+      if (m.id === 'modal-video') closeVideoModal();
+      else m.classList.remove('open');
+    })
   );
 });
 
@@ -2109,6 +2222,7 @@ const I18N = {
     'Erreur upload':'Erreur upload',
     'Erreur upload image':'Erreur upload image',
     'Erreur enregistrement vidéo':'Erreur enregistrement vidéo',
+    'Format vidéo non supporté':'Format vidéo non supporté',
     'Veuillez entrer votre email':'Veuillez entrer votre email',
     'Merci pour votre inscription !':'Merci pour votre inscription !',
     'Soyez le premier à donner votre avis':'Soyez le premier à donner votre avis',
@@ -2160,6 +2274,7 @@ const I18N = {
     'Erreur upload':'Upload error',
     'Erreur upload image':'Image upload error',
     'Erreur enregistrement vidéo':'Video recording error',
+    'Format vidéo non supporté':'Unsupported video format',
     'Veuillez entrer votre email':'Please enter your email',
     'Merci pour votre inscription !':'Thank you for subscribing!',
     'Soyez le premier à donner votre avis':'Be the first to leave a review',
@@ -2211,6 +2326,7 @@ const I18N = {
     'Erreur upload':'خطأ في الرفع',
     'Erreur upload image':'خطأ في رفع الصورة',
     'Erreur enregistrement vidéo':'خطأ في تسجيل الفيديو',
+    'Format vidéo non supporté':'تنسيق الفيديو غير مدعوم',
     'Veuillez entrer votre email':'الرجاء إدخال بريدك الإلكتروني',
     'Merci pour votre inscription !':'شكراً لاشتراكك!',
     'Soyez le premier à donner votre avis':'كن أول من يترك رأيه',
@@ -2262,6 +2378,7 @@ const I18N = {
     'Erreur upload':'Error de carga',
     'Erreur upload image':'Error al subir imagen',
     'Erreur enregistrement vidéo':'Error al guardar video',
+    'Format vidéo non supporté':'Formato de vídeo no compatible',
     'Veuillez entrer votre email':'Por favor ingrese su email',
     'Merci pour votre inscription !':'¡Gracias por suscribirte!',
     'Soyez le premier à donner votre avis':'Sé el primero en dar tu opinión',
@@ -2313,6 +2430,7 @@ const I18N = {
     'Erreur upload':'Erro de upload',
     'Erreur upload image':'Erro ao enviar imagem',
     'Erreur enregistrement vidéo':'Erro ao salvar vídeo',
+    'Format vidéo non supporté':'Formato de vídeo não suportado',
     'Veuillez entrer votre email':'Por favor insira seu email',
     'Merci pour votre inscription !':'Obrigado por se inscrever!',
     'Soyez le premier à donner votre avis':'Seja o primeiro a dar sua opinião',
@@ -2364,6 +2482,7 @@ const I18N = {
     'Erreur upload':'Upload-Fehler',
     'Erreur upload image':'Fehler beim Bild-Upload',
     'Erreur enregistrement vidéo':'Fehler beim Speichern des Videos',
+    'Format vidéo non supporté':'Nicht unterstütztes Videoformat',
     'Veuillez entrer votre email':'Bitte geben Sie Ihre E-Mail ein',
     'Merci pour votre inscription !':'Danke für Ihr Abonnement!',
     'Soyez le premier à donner votre avis':'Seien Sie der Erste, der eine Bewertung abgibt',

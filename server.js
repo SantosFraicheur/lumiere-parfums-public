@@ -87,6 +87,17 @@ function rejectHtml(value) {
   return true;
 }
 
+function isCloudinaryVideoUrl(value) {
+  try {
+    const parsed = new URL(String(value || ''));
+    return parsed.protocol === 'https:' &&
+      parsed.hostname === 'res.cloudinary.com' &&
+      parsed.pathname.includes('/video/upload/');
+  } catch (_) {
+    return false;
+  }
+}
+
 const safeTextBody = (field, { min = 1, max = 255, required = true, message = 'Champ invalide' } = {}) => {
   let chain = body(field);
   if (!required) chain = chain.optional({ checkFalsy: true });
@@ -164,7 +175,7 @@ const previewState = {
     {
       id: 2001,
       title: 'Lumière - Collection signature',
-      url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      url: 'https://res.cloudinary.com/demo/video/upload/dog.mp4',
       created_at: new Date('2026-06-03T12:00:00Z'),
     },
   ],
@@ -1645,8 +1656,14 @@ app.get('/api/videos', async (_req, res) => {
 });
 
 app.post('/api/videos', authenticateAdmin, [
-  body('title').trim().notEmpty().isLength({ max: 255 }),
-  body('url').notEmpty(),
+  safeTextBody('title', { min: 2, max: 80, message: 'Titre vidéo invalide' }),
+  body('url')
+    .notEmpty().withMessage('URL vidéo requise')
+    .isURL({ protocols: ['https'], require_protocol: true }).withMessage('URL vidéo invalide')
+    .custom(value => {
+      if (!isCloudinaryVideoUrl(value)) throw new Error('URL vidéo Cloudinary requise');
+      return true;
+    }),
 ], validate, async (req, res) => {
   const { id, title, url } = req.body;
   const videoId = id || Date.now();

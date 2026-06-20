@@ -476,6 +476,215 @@ nav {
 .t-status.delivered{ background: rgba(201,169,110,0.12); color: var(--gold); border: 1px solid rgba(201,169,110,0.3); }
 .t-status svg { width: 14px; height: 14px; }
 
+/* ===== VIDEOS ===== */
+.videos-shell {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 44px 28px 72px;
+}
+.videos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 22px;
+}
+.video-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--dark-2);
+  border: 1px solid rgba(201,169,110,0.14);
+  cursor: pointer;
+  transition: transform 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease;
+}
+.video-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(201,169,110,0.36);
+  box-shadow: 0 22px 54px rgba(0,0,0,0.36);
+}
+.video-card:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 4px;
+}
+.video-thumb {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(145deg, rgba(201,169,110,0.12), rgba(0,0,0,0.28));
+  overflow: hidden;
+}
+.video-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: saturate(0.88) contrast(1.05);
+  transform: scale(1.01);
+  transition: transform 0.45s ease, filter 0.45s ease;
+}
+.video-card:hover .video-thumb img {
+  transform: scale(1.05);
+  filter: saturate(1.02) contrast(1.08);
+}
+.video-thumb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(13,10,7,0.02) 0%, rgba(13,10,7,0.28) 58%, rgba(13,10,7,0.72) 100%);
+}
+.video-thumb-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(201,169,110,0.32);
+}
+.video-thumb-placeholder svg {
+  width: 60px;
+  height: 60px;
+}
+.video-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  width: 58px;
+  height: 58px;
+  border: 1px solid rgba(245,240,232,0.36);
+  background: rgba(13,10,7,0.72);
+  color: var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.28s ease, background 0.28s ease, border-color 0.28s ease;
+}
+.video-play svg {
+  width: 24px;
+  height: 24px;
+  margin-left: 3px;
+}
+.video-card:hover .video-play {
+  transform: translate(-50%, -50%) scale(1.08);
+  background: rgba(201,169,110,0.18);
+  border-color: rgba(201,169,110,0.62);
+}
+.video-meta {
+  padding: 20px 22px 22px;
+  min-height: 118px;
+}
+.video-kicker {
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 10px;
+}
+.video-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 25px;
+  line-height: 1.12;
+  color: var(--cream);
+  overflow-wrap: anywhere;
+}
+.video-date {
+  margin-top: 12px;
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+.video-empty {
+  border: 1px solid rgba(201,169,110,0.12);
+  background: rgba(26,21,16,0.65);
+  padding: 54px 22px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.video-modal {
+  max-width: 980px;
+  padding: 24px;
+  background: #080605;
+}
+.video-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 0 44px 18px 0;
+}
+.video-modal-title {
+  font-family: 'Cormorant Garamond', serif;
+  color: var(--cream);
+  font-size: 30px;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+.video-modal-kicker {
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+.video-player-frame {
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border: 1px solid rgba(201,169,110,0.14);
+}
+.video-player-frame video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: #000;
+}
+.admin-video-item {
+  margin-bottom: 16px;
+  padding: 16px;
+  background: var(--dark-2);
+  border: 1px solid rgba(201,169,110,0.12);
+  display: grid;
+  grid-template-columns: minmax(180px, 280px) 1fr auto;
+  gap: 18px;
+  align-items: center;
+}
+.admin-video-preview {
+  aspect-ratio: 16 / 9;
+  background: var(--dark-3);
+  overflow: hidden;
+}
+.admin-video-preview img,
+.admin-video-preview video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.admin-video-title {
+  color: var(--cream);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px;
+  overflow-wrap: anywhere;
+}
+.admin-video-date {
+  color: var(--text-dim);
+  font-size: 11px;
+  margin-top: 8px;
+}
+.video-upload-preview {
+  display: none;
+  margin-top: 16px;
+  border: 1px solid rgba(201,169,110,0.16);
+  background: var(--dark);
+  padding: 12px;
+}
+.video-upload-preview video {
+  width: 100%;
+  max-height: 260px;
+  background: #000;
+  display: block;
+}
+
 /* ===== ADMIN ===== */
 .admin-layout { display: flex; min-height: calc(100vh - 80px); }
 .admin-sidebar { width: 260px; background: var(--dark-2); border-right: 1px solid rgba(201,169,110,0.1); padding: 40px 0; flex-shrink: 0; }
@@ -1018,6 +1227,15 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
   .page-header { padding: 30px 20px 24px; }
   .page-header h1 { font-size: 36px; }
   .cart-container, .payment-container, .tracking-container { padding: 30px 20px; }
+  .videos-shell { padding: 24px 16px 54px; }
+  .videos-grid { grid-template-columns: 1fr; gap: 16px; }
+  .video-meta { padding: 18px; min-height: 104px; }
+  .video-title { font-size: 23px; }
+  .video-play { width: 52px; height: 52px; }
+  .video-modal { padding: 16px; }
+  .video-modal-head { padding-right: 38px; }
+  .video-modal-title { font-size: 24px; }
+  .admin-video-item { grid-template-columns: 1fr; }
   .admin-layout { flex-direction: column; }
   .admin-sidebar { width: 100%; padding: 0; }
   .admin-mobile-toggle { display: flex; }
@@ -1037,6 +1255,13 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
   .reviews-title { font-size: 28px; }
   .reviews-grid { grid-template-columns: 1fr; gap: 14px; }
   .social-section { padding: 30px 14px; }
+  .videos-shell { padding: 18px 12px 44px; }
+  .video-card { border-left: none; border-right: none; }
+  .video-meta { padding: 16px 14px 18px; }
+  .video-title { font-size: 21px; }
+  .video-modal { padding: 12px; margin: 0; }
+  .video-modal-head { padding: 0 38px 14px 0; }
+  .video-modal-title { font-size: 22px; }
   .hero-title { font-size: 38px; }
   .stats-grid { grid-template-columns: 1fr; }
   .confirm-actions { flex-direction: column; }
@@ -1300,7 +1525,9 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
     <h1 data-i18n="videos-title">Nos Vidéos</h1>
     <p data-i18n="videos-subtitle">Découvrez nos parfums en vidéo</p>
   </div>
-  <div id="videos-grid" style="display:grid;gap:20px;padding:40px 60px"></div>
+  <div class="videos-shell">
+    <div id="videos-grid" class="videos-grid"></div>
+  </div>
 </div>
 
 <!-- ============ PAGE BOUTIQUE ============ -->
@@ -1671,7 +1898,10 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
         </div>
         <div class="form-group">
           <label>Fichier Vidéo</label>
-          <input type="file" id="video-file" accept="video/*" style="color:var(--text)">
+          <input type="file" id="video-file" accept="video/mp4,video/webm,video/quicktime" style="color:var(--text)" onchange="previewSelectedVideo(event)">
+        </div>
+        <div class="video-upload-preview" id="video-upload-preview">
+          <video id="video-upload-preview-player" muted controls preload="metadata"></video>
         </div>
         <div id="video-upload-status" style="display:none" class="video-upload-progress">
           <i data-lucide="loader"></i>
@@ -1828,6 +2058,21 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
     <h3>Preuve de Paiement</h3>
     <div id="modal-proof-ref" class="transaction-ref" style="margin-bottom:18px;display:none"></div>
     <img id="modal-proof-img" class="modal-img-full" src="" alt="Preuve de paiement">
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-video">
+  <div class="modal video-modal">
+    <button class="modal-close" onclick="closeVideoModal()"><i data-lucide="x"></i></button>
+    <div class="video-modal-head">
+      <div>
+        <div class="video-modal-kicker">LUMIÈRE VIDEO</div>
+        <div class="video-modal-title" id="modal-video-title">—</div>
+      </div>
+    </div>
+    <div class="video-player-frame">
+      <video id="modal-video-player" controls playsinline preload="metadata"></video>
+    </div>
   </div>
 </div>
 
