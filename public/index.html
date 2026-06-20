@@ -427,6 +427,16 @@ nav {
 .bank-label { color: var(--text-dim); }
 .bank-value { color: var(--cream); font-weight: 400; }
 .bank-unconfigured { color: var(--orange); font-size: 12px; margin-top: 12px; padding: 12px; background: rgba(230,126,34,0.08); border-left: 3px solid var(--orange); }
+.payment-reference-field {
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.payment-reference-hint {
+  margin-top: 8px;
+  color: var(--text-dim);
+  font-size: 11px;
+  line-height: 1.6;
+}
 .upload-zone { border: 2px dashed rgba(201,169,110,0.3); padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; position: relative; }
 .upload-zone:hover { border-color: var(--gold); background: rgba(201,169,110,0.03); }
 .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
@@ -488,6 +498,21 @@ nav {
 .admin-table th { text-align: left; padding: 14px 20px; font-size: 9px; letter-spacing: 3px; text-transform: uppercase; color: var(--text-dim); border-bottom: 1px solid rgba(201,169,110,0.2); }
 .admin-table td { padding: 18px 20px; border-bottom: 1px solid rgba(201,169,110,0.07); font-size: 13px; vertical-align: middle; }
 .admin-table tr:hover td { background: rgba(201,169,110,0.03); }
+.transaction-ref {
+  display: inline-flex;
+  max-width: 180px;
+  padding: 6px 10px;
+  border: 1px solid rgba(201,169,110,0.22);
+  color: var(--cream);
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+.transaction-ref-empty {
+  color: var(--text-dim);
+  font-size: 11px;
+}
 .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 14px; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; font-weight: 500; }
 .status-badge svg { width: 12px; height: 12px; }
 .badge-pending   { background: rgba(230,126,34,0.15); color: var(--orange); border: 1px solid rgba(230,126,34,0.3); }
@@ -1398,6 +1423,11 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
         <div class="bank-detail"><span class="bank-label" data-i18n="Banque">Banque</span><span class="bank-value">—</span></div>
       </div>
       <div class="form-group">
+        <label data-i18n="Référence de la transaction">Référence de la transaction</label>
+        <input type="text" id="transaction-ref" class="payment-reference-field" placeholder="Ex: TXN-2026-0001" data-i18n="Ex: TXN-2026-0001" autocomplete="off" spellcheck="false">
+        <p class="payment-reference-hint" data-i18n="Saisissez la référence visible sur votre reçu de virement.">Saisissez la référence visible sur votre reçu de virement.</p>
+      </div>
+      <div class="form-group">
         <label data-i18n="proof-title">Preuve de Paiement (Photo / Capture d'écran requise)</label>
         <div class="upload-zone" id="proof-zone">
           <input type="file" id="proof-input" accept="image/*,application/pdf" onchange="handleProofUpload(event)">
@@ -1562,7 +1592,7 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
       <div class="admin-section" id="admin-orders">
         <h2>Gestion des Commandes</h2>
         <table class="admin-table">
-          <thead><tr><th>ID Commande</th><th>Client</th><th>Produits</th><th>Montant</th><th>Preuve</th><th>Statut</th><th>Actions</th></tr></thead>
+          <thead><tr><th>ID Commande</th><th>Client</th><th>Produits</th><th>Montant</th><th>Référence</th><th>Preuve</th><th>Statut</th><th>Actions</th></tr></thead>
           <tbody id="orders-tbody"></tbody>
         </table>
       </div>
@@ -1577,11 +1607,11 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
       <div class="admin-section" id="admin-add-product">
         <h2>Ajouter un Produit</h2>
         <div class="add-product-form">
-          <h3>Nouveau Parfum</h3>
+          <h3>Nouveau Produit</h3>
           <div class="form-row">
             <div class="form-group">
               <label>Nom du Produit</label>
-              <input type="text" id="prod-name" placeholder="Nom du parfum">
+              <input type="text" id="prod-name" placeholder="Nom du produit">
             </div>
             <div class="form-group">
               <label>Prix ($)</label>
@@ -1592,20 +1622,18 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
             <div class="form-group">
               <label>Catégorie</label>
               <select id="prod-category">
-                <option>Femme</option>
-                <option>Homme</option>
-                <option>Mixte</option>
-                <option>Édition Limitée</option>
+                <option>Coffret</option>
+                <option>Miniatures</option>
               </select>
             </div>
             <div class="form-group">
-              <label>Quantité (carton)</label>
-              <input type="text" id="prod-quantite" placeholder="1 carton">
+              <label>Quantité / Format</label>
+              <input type="text" id="prod-quantite" placeholder="1 coffret, lot miniatures...">
             </div>
           </div>
           <div class="form-group">
             <label>Description</label>
-            <textarea id="prod-desc" placeholder="Description olfactive du parfum..."></textarea>
+            <textarea id="prod-desc" placeholder="Description du coffret ou des miniatures..."></textarea>
           </div>
           <div class="form-group">
             <label>Photos du Produit</label>
@@ -1798,6 +1826,7 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
   <div class="modal" style="max-width:700px">
     <button class="modal-close" onclick="closeModal('modal-proof')"><i data-lucide="x"></i></button>
     <h3>Preuve de Paiement</h3>
+    <div id="modal-proof-ref" class="transaction-ref" style="margin-bottom:18px;display:none"></div>
     <img id="modal-proof-img" class="modal-img-full" src="" alt="Preuve de paiement">
   </div>
 </div>
@@ -1832,6 +1861,19 @@ select { width:100%; background:var(--dark-3); border:1px solid rgba(201,169,110
     <div class="form-group">
       <label>Description</label>
       <textarea id="edit-prod-desc"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Catégorie</label>
+        <select id="edit-prod-category">
+          <option>Coffret</option>
+          <option>Miniatures</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Quantité / Format</label>
+        <input type="text" id="edit-prod-quantite">
+      </div>
     </div>
     <div class="form-group">
       <label>Ajouter des Photos</label>

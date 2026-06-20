@@ -37,12 +37,17 @@ CREATE TABLE IF NOT EXISTS orders (
   status         VARCHAR(50)  DEFAULT 'pending',
   address        TEXT,
   "trackingCode" VARCHAR(50),
+  transaction_ref VARCHAR(100) NOT NULL DEFAULT '',
   proof_url      TEXT,
   created_at     TIMESTAMPTZ  DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_orders_userid       ON orders("userId");
 CREATE INDEX IF NOT EXISTS idx_orders_trackingcode ON orders("trackingCode");
+
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS transaction_ref VARCHAR(100) NOT NULL DEFAULT '';
+UPDATE products SET category='Coffret' WHERE category IN ('Femme', 'femme');
+UPDATE products SET category='Miniatures' WHERE category IN ('Homme', 'homme', 'Mixte', 'mixte');
 
 CREATE TABLE IF NOT EXISTS order_items (
   id           SERIAL      PRIMARY KEY,

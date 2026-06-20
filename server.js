@@ -59,6 +59,17 @@ function isLocalDatabaseUrl(url) {
 
 const previewMode = !dbUrl || isLocalDatabaseUrl(dbUrl) || process.env.PREVIEW_MODE === '1';
 
+const PRODUCT_CATEGORIES = ['Coffret', 'Miniatures'];
+
+function normalizeProductCategory(category) {
+  const value = String(category || '').trim();
+  if (!value) return PRODUCT_CATEGORIES[0];
+  const lower = value.toLowerCase();
+  if (lower === 'femme' || lower === 'coffret' || lower === 'coffrets') return 'Coffret';
+  if (lower === 'homme' || lower === 'mixte' || lower === 'miniature' || lower === 'miniatures') return 'Miniatures';
+  return PRODUCT_CATEGORIES.includes(value) ? value : PRODUCT_CATEGORIES[0];
+}
+
 const previewState = {
   adminHash: ADMIN_PASSWORD ? bcrypt.hashSync(ADMIN_PASSWORD, 12) : null,
   customers: [],
@@ -67,7 +78,7 @@ const previewState = {
       id: 1001,
       name: 'Ambre Nocturne',
       price: 24900,
-      category: 'Oriental',
+      category: 'Coffret',
       quantite: '100ml',
       description: 'Un parfum ambré profond, chaud et élégant.',
       images: ['/hero-perfumes.png'],
@@ -78,7 +89,7 @@ const previewState = {
       id: 1002,
       name: 'Bois Impérial',
       price: 21900,
-      category: 'Boisé',
+      category: 'Miniatures',
       quantite: '50ml',
       description: 'Des notes boisées sèches avec un sillage raffiné.',
       images: ['/hero-perfumes.png'],
@@ -89,7 +100,7 @@ const previewState = {
       id: 1003,
       name: 'Rose Lumière',
       price: 19900,
-      category: 'Floral',
+      category: 'Coffret',
       quantite: '75ml',
       description: 'Une rose lumineuse, douce et contemporaine.',
       images: ['/hero-perfumes.png'],
@@ -149,7 +160,7 @@ const previewState = {
     {
       id: 3003,
       name: 'ÉLISE MOREAU',
-      product: 'Parfums Femme',
+      product: 'Coffrets Premium',
       content: 'Livraison rapide, emballage soigné. Parfum conforme à la description.',
       rating: 5,
       created_at: new Date('2026-06-08T12:00:00Z'),
@@ -158,7 +169,7 @@ const previewState = {
     {
       id: 3004,
       name: 'VÉTIVER',
-      product: 'Parfums Homme',
+      product: 'Miniatures Premium',
       content: "Vétiver authentique, j'aime beaucoup",
       rating: 5,
       created_at: new Date('2026-06-07T12:00:00Z'),
@@ -308,7 +319,7 @@ function createPreviewPool() {
           id: Number(id),
           name,
           price: Number(price),
-          category: category || '',
+          category: normalizeProductCategory(category),
           quantite: quantite || '',
           description: description || '',
           desc: description || '',
@@ -358,7 +369,7 @@ function createPreviewPool() {
           found.price = Number(price);
           found.description = description || '';
           found.desc = description || '';
-          found.category = category || '';
+          found.category = normalizeProductCategory(category);
           found.quantite = quantite || '';
         }
         return { rows: [], rowCount: 1 };
@@ -394,6 +405,7 @@ function createPreviewPool() {
             customer: order.customer,
             total: order.total,
             status: order.status,
+            transaction_ref: order.transaction_ref || '',
             trackingCode: order.trackingCode,
             created_at: order.created_at,
           }],
@@ -406,17 +418,18 @@ function createPreviewPool() {
         const rows = previewState.orders.filter(o => o.userId === email).map(o => ({
           ...o,
           proof_url: o.proof_url || null,
+          transaction_ref: o.transaction_ref || '',
         }));
         return { rows, rowCount: rows.length };
       }
 
       if (q.includes('from orders order by created_at desc')) {
-        const rows = previewState.orders.map(o => ({ ...o, proof_url: o.proof_url || null }));
+        const rows = previewState.orders.map(o => ({ ...o, proof_url: o.proof_url || null, transaction_ref: o.transaction_ref || '' }));
         return { rows, rowCount: rows.length };
       }
 
       if (q.startsWith('insert into orders')) {
-        const [id, userId, customer, total, address, trackingCode, proofUrl] = params;
+        const [id, userId, customer, total, address, trackingCode, transactionRef, proofUrl] = params;
         previewState.orders.push({
           id,
           userId,
@@ -425,6 +438,7 @@ function createPreviewPool() {
           status: 'pending',
           address,
           trackingCode,
+          transaction_ref: transactionRef || '',
           proof_url: proofUrl,
           created_at: new Date(),
         });
@@ -755,11 +769,15 @@ async function initDatabase() {
         status         VARCHAR(50) DEFAULT 'pending',
         address        TEXT,
         "trackingCode" VARCHAR(50),
+        transaction_ref VARCHAR(100) NOT NULL DEFAULT '',
         proof_url      TEXT,
         created_at     TIMESTAMPTZ DEFAULT NOW()
       );
       CREATE INDEX IF NOT EXISTS idx_orders_userid       ON orders("userId");
       CREATE INDEX IF NOT EXISTS idx_orders_trackingcode ON orders("trackingCode");
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS transaction_ref VARCHAR(100) NOT NULL DEFAULT '';
+      UPDATE products SET category='Coffret' WHERE category IN ('Femme', 'femme');
+      UPDATE products SET category='Miniatures' WHERE category IN ('Homme', 'homme', 'Mixte', 'mixte');
       CREATE TABLE IF NOT EXISTS order_items (
         id           SERIAL PRIMARY KEY,
         order_id     VARCHAR(50) REFERENCES orders(id) ON DELETE CASCADE,
@@ -1095,6 +1113,7 @@ app.get('/api/products', async (_req, res) => {
     for (const p of products) {
       p.images = p.images || [];
       p.desc = p.description;
+      p.category = normalizeProductCategory(p.category);
     }
     res.json(products);
   } catch (err) {
@@ -1106,17 +1125,18 @@ app.get('/api/products', async (_req, res) => {
 app.post('/api/products', authenticateAdmin, [
   body('name').trim().notEmpty().isLength({ max: 255 }),
   body('price').isInt({ min: 0 }),
-  body('category').optional().trim().isLength({ max: 100 }),
+  body('category').optional().trim().custom(value => PRODUCT_CATEGORIES.includes(normalizeProductCategory(value))).withMessage('Catégorie invalide'),
   body('quantite').optional().trim().isLength({ max: 100 }),
   body('desc').optional().trim().isLength({ max: 5000 }),
   body('images').optional().isArray(),
 ], validate, async (req, res) => {
   const { id, name, price, category, quantite, desc, images = [] } = req.body;
   const productId = id || Date.now();
+  const normalizedCategory = normalizeProductCategory(category);
   try {
     await pool.query(
       'INSERT INTO products (id, name, price, category, quantite, description) VALUES ($1,$2,$3,$4,$5,$6)',
-      [productId, name, price, category || '', quantite || '', desc]
+      [productId, name, price, normalizedCategory, quantite || '', desc]
     );
     for (const url of images) {
       await pool.query('INSERT INTO product_images (product_id, image_url) VALUES ($1,$2)', [productId, url]);
@@ -1132,6 +1152,7 @@ app.put('/api/products/:id', authenticateAdmin, [
   param('id').isNumeric(),
   body('name').optional().trim().isLength({ max: 255 }),
   body('price').optional().isInt({ min: 0 }),
+  body('category').optional().trim().custom(value => PRODUCT_CATEGORIES.includes(normalizeProductCategory(value))).withMessage('Catégorie invalide'),
   body('images').optional().isArray(),
 ], validate, async (req, res) => {
   const { id } = req.params;
@@ -1139,7 +1160,7 @@ app.put('/api/products/:id', authenticateAdmin, [
   try {
     await pool.query(
       'UPDATE products SET name=$1, price=$2, description=$3, category=$4, quantite=$5 WHERE id=$6',
-      [name, price, desc, category || '', quantite || '', id]
+      [name, price, desc, normalizeProductCategory(category), quantite || '', id]
     );
     await pool.query('DELETE FROM product_images WHERE product_id=$1', [id]);
     for (const url of images) {
@@ -1174,7 +1195,7 @@ app.get('/api/orders/track', [
 ], validate, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT id, customer, total, status, "trackingCode", created_at
+      `SELECT id, customer, total, status, transaction_ref, "trackingCode", created_at
        FROM orders WHERE "trackingCode"=$1`,
       [req.query.code]
     );
@@ -1193,13 +1214,14 @@ app.get('/api/orders/track', [
 app.get('/api/orders/me', authenticateUser, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT *, "userId", "trackingCode", proof_url FROM orders WHERE "userId"=$1 ORDER BY created_at DESC`,
+      `SELECT *, "userId", "trackingCode", transaction_ref, proof_url FROM orders WHERE "userId"=$1 ORDER BY created_at DESC`,
       [req.user.email]
     );
     for (const o of rows) {
       const { rows: items } = await pool.query('SELECT * FROM order_items WHERE order_id=$1', [o.id]);
       o.items    = items;
       o.proofUrl = o.proof_url;
+      o.transactionRef = o.transaction_ref || '';
     }
     res.json(rows);
   } catch (err) {
@@ -1211,12 +1233,13 @@ app.get('/api/orders/me', authenticateUser, async (req, res) => {
 app.get('/api/orders', authenticateAdmin, async (_req, res) => {
   try {
     const { rows } = await pool.query(
-      'SELECT *, "userId", "trackingCode", proof_url FROM orders ORDER BY created_at DESC'
+      'SELECT *, "userId", "trackingCode", transaction_ref, proof_url FROM orders ORDER BY created_at DESC'
     );
     for (const o of rows) {
       const { rows: items } = await pool.query('SELECT * FROM order_items WHERE order_id=$1', [o.id]);
       o.items    = items;
       o.proofUrl = o.proof_url;
+      o.transactionRef = o.transaction_ref || '';
     }
     res.json(rows);
   } catch (err) {
@@ -1231,10 +1254,11 @@ app.post('/api/orders', authenticateUser, [
   body('total').isInt({ min: 0 }),
   body('address').trim().notEmpty().isLength({ max: 1000 }),
   body('items').isArray({ min: 1 }),
+  body('transactionRef').trim().notEmpty().isLength({ max: 100 }).withMessage('Référence de transaction requise'),
   body('proofUrl').notEmpty().withMessage('Preuve de paiement requise'),
   body('promoCode').optional().trim().isLength({ max: 50 }),
 ], validate, async (req, res) => {
-  const { customer, items = [], total, address, proofUrl, promoCode } = req.body;
+  const { customer, items = [], total, address, transactionRef, proofUrl, promoCode } = req.body;
   const userId      = req.user.email;
   const id          = genOrderId();
   const trackingCode = genTrackingCode();
@@ -1267,9 +1291,9 @@ app.post('/api/orders', authenticateUser, [
     }
 
     await pool.query(
-      `INSERT INTO orders (id, "userId", customer, total, status, address, "trackingCode", proof_url)
-       VALUES ($1,$2,$3,$4,'pending',$5,$6,$7)`,
-      [id, userId, customer, finalTotal, address, trackingCode, proofUrl]
+      `INSERT INTO orders (id, "userId", customer, total, status, address, "trackingCode", transaction_ref, proof_url)
+       VALUES ($1,$2,$3,$4,'pending',$5,$6,$7,$8)`,
+      [id, userId, customer, finalTotal, address, trackingCode, transactionRef.trim(), proofUrl]
     );
     for (const item of items) {
       await pool.query(

@@ -60,6 +60,7 @@ let state = {
 
 let newProdFiles  = [];
 let editProdFiles = [];
+const PRODUCT_CATEGORIES = ['Coffret', 'Miniatures'];
 
 // ── Helpers ───────────────────────────────────────────────────
 function escHtml(str) {
@@ -70,6 +71,21 @@ function escHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function normalizeProductCategory(category) {
+  const value = String(category || '').trim();
+  if (!value) return PRODUCT_CATEGORIES[0];
+  const lower = value.toLowerCase();
+  if (lower === 'femme' || lower === 'coffret' || lower === 'coffrets') return 'Coffret';
+  if (lower === 'homme' || lower === 'mixte' || lower === 'miniature' || lower === 'miniatures') return 'Miniatures';
+  return PRODUCT_CATEGORIES.includes(value) ? value : PRODUCT_CATEGORIES[0];
+}
+
+function normalizeProducts(products) {
+  return Array.isArray(products)
+    ? products.map(p => ({ ...p, category: normalizeProductCategory(p.category) }))
+    : [];
 }
 
 function saveState() {
@@ -212,6 +228,8 @@ const _reviewTranslations = {
 
 function translateContent(text) {
   const lang = _currentLang || 'fr';
+  if (text === 'Parfums Femme') return __('Coffrets');
+  if (text === 'Parfums Homme') return __('Miniatures');
   if (_reviewTranslations[text] && _reviewTranslations[text][lang]) {
     return _reviewTranslations[text][lang];
   }
@@ -452,7 +470,7 @@ async function listenProducts() {
     if (cached) {
       const { data, timestamp } = JSON.parse(cached);
       if (Date.now() - timestamp < 300000 && data.length > 0) {
-        state.products = data;
+        state.products = normalizeProducts(data);
         state.productsLoaded = true;
         renderCategoryFilter();
         renderProducts();
@@ -463,10 +481,10 @@ async function listenProducts() {
   } catch (_) {}
   try {
     const data = await fetch('/api/products').then(r => r.json());
-    state.products = data;
+    state.products = normalizeProducts(data);
     state.productsLoaded = true;
     // Store in cache
-    try { localStorage.setItem('lumiere_products_cache', JSON.stringify({ data, timestamp: Date.now() })); } catch (_) {}
+    try { localStorage.setItem('lumiere_products_cache', JSON.stringify({ data: state.products, timestamp: Date.now() })); } catch (_) {}
     renderCategoryFilter();
     renderProducts();
     if (state.isAdmin) renderAdminProducts();
@@ -476,7 +494,9 @@ async function listenProducts() {
 function renderCategoryFilter() {
   const bar = document.getElementById('category-filter');
   if (!bar) return;
-  const cats = ['all', ...new Set(state.products.map(p => p.category).filter(Boolean))];
+  if (!PRODUCT_CATEGORIES.includes(activeCategory) && activeCategory !== 'all') activeCategory = 'all';
+  const available = new Set(state.products.map(p => normalizeProductCategory(p.category)));
+  const cats = ['all', ...PRODUCT_CATEGORIES.filter(cat => available.has(cat))];
   bar.innerHTML = cats.map(cat => `
     <button class="filter-btn ${activeCategory === cat ? 'active' : ''}"
       onclick="setCategory('${escHtml(cat)}')">
@@ -757,6 +777,8 @@ async function renderPayment() {
 
   // Réinitialise la zone de preuve
   state.proofUrl = null;
+  const refInput = document.getElementById('transaction-ref');
+  if (refInput) refInput.value = '';
   const nameEl = document.getElementById('proof-name');
   if (nameEl) { nameEl.style.display = 'none'; nameEl.textContent = ''; }
   const zone = document.getElementById('proof-zone');
@@ -791,6 +813,8 @@ async function handleProofUpload(e) {
 }
 
 async function submitOrder() {
+  const transactionRef = document.getElementById('transaction-ref')?.value.trim().toUpperCase() || '';
+  if (!transactionRef) { showToast(__('Référence de transaction requise'), 'error'); return; }
   if (!state.proofUrl) { showToast(__('Ajoutez une preuve de paiement'), 'error'); return; }
   const address = document.getElementById('delivery-address').value.trim();
   if (!address) { showToast(__('Adresse de livraison requise'), 'error'); return; }
@@ -802,6 +826,7 @@ async function submitOrder() {
     customer  : state.currentUser.name,
     items     : state.cart,
     total,
+    transactionRef,
     proofUrl  : state.proofUrl,
     address,
     promoCode : state.activePromo ? state.activePromo.code : undefined,
@@ -898,6 +923,7 @@ async function searchTracking() {
           ${escHtml(order.trackingCode || order.trackingcode || code)}
         </div>
         <div style="margin-bottom:10px;font-size:13px;color:var(--text-dim)">${items}</div>
+        ${order.transaction_ref ? `<div style="margin-bottom:12px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--cream)">${__('Référence')} : ${escHtml(order.transaction_ref)}</div>` : ''}
         <div style="font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--gold);margin-bottom:14px">${order.total.toLocaleString('fr-FR')} ${getCurrency()}</div>
         <span class="t-status ${order.status}" style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;font-size:11px;letter-spacing:2px;text-transform:uppercase">
           ${icon} ${label}
@@ -1177,6 +1203,9 @@ function renderAdminOrders() {
       </td>
       <td style="font-size:12px">${(o.items||[]).map(i => escHtml(i.product_name) + ' ×' + i.quantity).join('<br>')}</td>
       <td style="color:var(--gold);font-family:'Cormorant Garamond',serif">${o.total.toLocaleString('fr-FR')} ${getCurrency()}</td>
+      <td>${o.transaction_ref
+          ? `<span class="transaction-ref">${escHtml(o.transaction_ref)}</span>`
+          : '<span class="transaction-ref-empty">—</span>'}</td>
       <td>${o.proof_url
           ? `<img class="proof-thumb" src="${escHtml(o.proof_url)}" onclick="viewProof('${tid}')" title="Voir la preuve">`
           : '<span style="color:var(--text-dim);font-size:11px">Aucune</span>'}</td>
@@ -1193,6 +1222,16 @@ function renderAdminOrders() {
 function viewProof(orderId) {
   const order = state.orders.find(o => o.id === orderId);
   if (!order || !order.proof_url) return;
+  const refEl = document.getElementById('modal-proof-ref');
+  if (refEl) {
+    if (order.transaction_ref) {
+      refEl.textContent = __('Référence') + ' : ' + order.transaction_ref;
+      refEl.style.display = 'inline-flex';
+    } else {
+      refEl.textContent = '';
+      refEl.style.display = 'none';
+    }
+  }
   document.getElementById('modal-proof-img').src = order.proof_url;
   document.getElementById('modal-proof').classList.add('open');
 }
@@ -1323,6 +1362,8 @@ function openEditProduct(id) {
   document.getElementById('edit-prod-name').value  = p.name;
   document.getElementById('edit-prod-price').value = p.price;
   document.getElementById('edit-prod-desc').value  = p.desc || p.description;
+  document.getElementById('edit-prod-category').value = normalizeProductCategory(p.category);
+  document.getElementById('edit-prod-quantite').value = p.quantite || '';
   const grid = document.getElementById('edit-preview-grid');
   grid.innerHTML = '';
   (p.images || []).forEach((url, i) => {
@@ -1378,8 +1419,8 @@ async function saveEditProduct() {
     price   : parseInt(document.getElementById('edit-prod-price').value),
     desc    : document.getElementById('edit-prod-desc').value,
     images  : existingImages,
-    category: p?.category || '',
-    quantite: p?.quantite  || '',
+    category: normalizeProductCategory(document.getElementById('edit-prod-category').value),
+    quantite: document.getElementById('edit-prod-quantite').value.trim(),
   };
   try {
     const res = await fetch('/api/products/' + id, {
@@ -2309,6 +2350,73 @@ const I18N = {
         'Entrez votre code (ex: LUM-XXXX-XXXXXX)':'Geben Sie Ihren Code ein (z.B. LUM-XXXX-XXXXXX)',
     'en livraison':'in Lieferung'}
 };
+
+const I18N_EXTRA = {
+  fr: {
+    'Coffret':'Coffret',
+    'Coffrets':'Coffrets',
+    'Miniatures':'Miniatures',
+    'Référence':'Référence',
+    'Référence de la transaction':'Référence de la transaction',
+    'Référence de transaction requise':'Référence de transaction requise',
+    'Saisissez la référence visible sur votre reçu de virement.':'Saisissez la référence visible sur votre reçu de virement.',
+    'Ex: TXN-2026-0001':'Ex: TXN-2026-0001',
+  },
+  en: {
+    'Coffret':'Gift Set',
+    'Coffrets':'Gift Sets',
+    'Miniatures':'Miniatures',
+    'Référence':'Reference',
+    'Référence de la transaction':'Transaction reference',
+    'Référence de transaction requise':'Transaction reference required',
+    'Saisissez la référence visible sur votre reçu de virement.':'Enter the reference shown on your transfer receipt.',
+    'Ex: TXN-2026-0001':'Ex: TXN-2026-0001',
+  },
+  es: {
+    'Coffret':'Cofre',
+    'Coffrets':'Cofres',
+    'Miniatures':'Miniaturas',
+    'Référence':'Referencia',
+    'Référence de la transaction':'Referencia de la transacción',
+    'Référence de transaction requise':'Referencia de transacción requerida',
+    'Saisissez la référence visible sur votre reçu de virement.':'Ingrese la referencia visible en su comprobante de transferencia.',
+    'Ex: TXN-2026-0001':'Ej: TXN-2026-0001',
+  },
+  pt: {
+    'Coffret':'Conjunto',
+    'Coffrets':'Conjuntos',
+    'Miniatures':'Miniaturas',
+    'Référence':'Referência',
+    'Référence de la transaction':'Referência da transação',
+    'Référence de transaction requise':'Referência da transação obrigatória',
+    'Saisissez la référence visible sur votre reçu de virement.':'Insira a referência visível no comprovante da transferência.',
+    'Ex: TXN-2026-0001':'Ex: TXN-2026-0001',
+  },
+  de: {
+    'Coffret':'Geschenkset',
+    'Coffrets':'Geschenksets',
+    'Miniatures':'Miniaturen',
+    'Référence':'Referenz',
+    'Référence de la transaction':'Transaktionsreferenz',
+    'Référence de transaction requise':'Transaktionsreferenz erforderlich',
+    'Saisissez la référence visible sur votre reçu de virement.':'Geben Sie die Referenz von Ihrem Überweisungsbeleg ein.',
+    'Ex: TXN-2026-0001':'Z.B.: TXN-2026-0001',
+  },
+  ar: {
+    'Coffret':'مجموعة هدايا',
+    'Coffrets':'مجموعات هدايا',
+    'Miniatures':'مصغرات',
+    'Référence':'المرجع',
+    'Référence de la transaction':'مرجع العملية',
+    'Référence de transaction requise':'مرجع العملية مطلوب',
+    'Saisissez la référence visible sur votre reçu de virement.':'أدخل المرجع الظاهر على إيصال التحويل.',
+    'Ex: TXN-2026-0001':'مثال: TXN-2026-0001',
+  },
+};
+
+for (const [lang, entries] of Object.entries(I18N_EXTRA)) {
+  I18N[lang] = { ...(I18N[lang] || {}), ...entries };
+}
 
 // Détection de langue — via Accept-Language du navigateur (fiable, sans API externe)
 function detectLang() {
