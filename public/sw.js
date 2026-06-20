@@ -1,4 +1,4 @@
-const CACHE = 'lumiere-v5';
+const CACHE = 'lumiere-v6';
 const URLS = ['/', '/index.html', '/manifest.json', '/icon.svg', '/app.js'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(URLS)));

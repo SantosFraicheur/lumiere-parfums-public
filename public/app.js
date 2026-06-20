@@ -99,6 +99,18 @@ function normalizeProducts(products) {
     : [];
 }
 
+function populateProductCategorySelects() {
+  ['prod-category', 'edit-prod-category'].forEach(id => {
+    const select = document.getElementById(id);
+    if (!select) return;
+    const current = normalizeProductCategory(select.value);
+    select.innerHTML = PRODUCT_CATEGORIES
+      .map(category => `<option value="${escHtml(category)}">${escHtml(category)}</option>`)
+      .join('');
+    select.value = PRODUCT_CATEGORIES.includes(current) ? current : PRODUCT_CATEGORIES[0];
+  });
+}
+
 function saveState() {
   localStorage.setItem('lumiere_state', JSON.stringify({
     currentUser  : state.currentUser,
@@ -1577,6 +1589,7 @@ async function deleteVideo(id) {
 // ════════════════════════════════════════════════════════════
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 document.addEventListener('DOMContentLoaded', () => {
+  populateProductCategorySelects();
   document.querySelectorAll('.modal-overlay').forEach(m =>
     m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); })
   );
