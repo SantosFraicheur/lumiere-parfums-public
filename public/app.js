@@ -111,20 +111,6 @@ function populateProductCategorySelects() {
   });
 }
 
-function isCloudinaryUrl(url) {
-  try {
-    const parsed = new URL(String(url || ''));
-    return parsed.protocol === 'https:' && parsed.hostname === 'res.cloudinary.com';
-  } catch (_) {
-    return false;
-  }
-}
-
-function getVideoPoster(url) {
-  if (!isCloudinaryUrl(url)) return '';
-  return String(url).replace('/video/upload/', '/video/upload/so_0,w_900,h_506,c_fill,q_auto,f_jpg/').replace(/\.[a-z0-9]+(\?.*)?$/i, '.jpg');
-}
-
 function formatVideoDate(value) {
   if (!value) return '';
   try {
@@ -132,6 +118,16 @@ function formatVideoDate(value) {
   } catch (_) {
     return '';
   }
+}
+
+function videoBrandThumb() {
+  return `
+    <div class="video-thumb-placeholder" aria-hidden="true">
+      <div class="video-brand-mark">${SVG.perfume}</div>
+      <div class="video-brand-name">Lumière<br>Parfums</div>
+      <div class="video-brand-sub">Premium Parfums</div>
+    </div>
+  `;
 }
 
 function saveState() {
@@ -1537,13 +1533,11 @@ function renderVideos() {
     return;
   }
   grid.innerHTML = state.videos.map((v, index) => {
-    const poster = getVideoPoster(v.url);
     const date = formatVideoDate(v.created_at);
     return `
     <div class="video-card" role="button" tabindex="0" onclick="openVideoModal(${index})" onkeydown="handleVideoCardKey(event, ${index})">
       <div class="video-thumb">
-        ${poster ? `<img src="${escHtml(poster)}" alt="${escHtml(v.title)}" loading="lazy" onerror="this.remove()">` : ''}
-        ${poster ? '' : `<div class="video-thumb-placeholder">${SVG.perfume}</div>`}
+        ${videoBrandThumb()}
         <div class="video-play" aria-hidden="true">
           <i data-lucide="play"></i>
         </div>
@@ -1580,7 +1574,6 @@ function openVideoModal(index) {
   });
   title.textContent = video.title || '';
   player.src = video.url;
-  player.poster = getVideoPoster(video.url);
   player.currentTime = 0;
   modal.classList.add('open');
   player.play().catch(() => {});
@@ -1591,7 +1584,6 @@ function closeVideoModal() {
   if (player) {
     try { player.pause(); } catch (_) {}
     player.removeAttribute('src');
-    player.removeAttribute('poster');
     player.load();
   }
   const modal = document.getElementById('modal-video');
@@ -1603,11 +1595,10 @@ function renderAdminVideos() {
   if (!box) return;
   if (state.videos.length === 0) { box.innerHTML = '<p style="color:var(--text-dim);font-size:13px">Aucune vidéo publiée</p>'; return; }
   box.innerHTML = state.videos.map(v => {
-    const poster = getVideoPoster(v.url);
     return `
     <div class="admin-video-item">
       <div class="admin-video-preview">
-        ${poster ? `<img src="${escHtml(poster)}" alt="${escHtml(v.title)}" loading="lazy" onerror="this.style.display='none'">` : `<video src="${escHtml(v.url)}" muted preload="metadata"></video>`}
+        ${videoBrandThumb()}
       </div>
       <div>
         <div class="admin-video-title">${escHtml(v.title)}</div>

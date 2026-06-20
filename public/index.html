@@ -511,42 +511,58 @@ nav {
   background: linear-gradient(145deg, rgba(201,169,110,0.12), rgba(0,0,0,0.28));
   overflow: hidden;
 }
-.video-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  filter: saturate(0.88) contrast(1.05);
-  transform: scale(1.01);
-  transition: transform 0.45s ease, filter 0.45s ease;
-}
-.video-card:hover .video-thumb img {
-  transform: scale(1.05);
-  filter: saturate(1.02) contrast(1.08);
-}
 .video-thumb::after {
   content: '';
   position: absolute;
   inset: 0;
+  z-index: 1;
   background: linear-gradient(180deg, rgba(13,10,7,0.02) 0%, rgba(13,10,7,0.28) 58%, rgba(13,10,7,0.72) 100%);
 }
 .video-thumb-placeholder {
   position: absolute;
   inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: rgba(201,169,110,0.88);
+  text-align: center;
+  padding: 26px;
+}
+.video-brand-mark {
+  width: 54px;
+  height: 54px;
+  border: 1px solid rgba(201,169,110,0.42);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(201,169,110,0.32);
+  color: var(--gold);
 }
-.video-thumb-placeholder svg {
-  width: 60px;
-  height: 60px;
+.video-brand-mark svg {
+  width: 32px;
+  height: 32px;
+}
+.video-brand-name {
+  font-family: 'Cormorant Garamond', serif;
+  color: var(--cream);
+  font-size: 27px;
+  line-height: 0.98;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+.video-brand-sub {
+  color: var(--gold);
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
 }
 .video-play {
   position: absolute;
   left: 50%;
   top: 50%;
-  z-index: 2;
+  z-index: 3;
   transform: translate(-50%, -50%);
   width: 58px;
   height: 58px;
@@ -653,12 +669,22 @@ nav {
   background: var(--dark-3);
   overflow: hidden;
 }
-.admin-video-preview img,
-.admin-video-preview video {
-  width: 100%;
+.admin-video-preview .video-thumb-placeholder {
+  position: relative;
   height: 100%;
-  object-fit: cover;
-  display: block;
+  padding: 16px;
+}
+.admin-video-preview .video-brand-mark {
+  width: 42px;
+  height: 42px;
+}
+.admin-video-preview .video-brand-name {
+  font-size: 18px;
+  letter-spacing: 2px;
+}
+.admin-video-preview .video-brand-sub {
+  font-size: 8px;
+  letter-spacing: 2px;
 }
 .admin-video-title {
   color: var(--cream);
