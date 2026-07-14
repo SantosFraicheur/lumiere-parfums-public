@@ -1992,8 +1992,8 @@ app.post('/api/admin/login', authLimiter, [
     const token = jwt.sign({ username, role: 'admin' }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
     res.json({ ok: true, token });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erreur serveur' });
+    console.error('Admin Login Error:', err);
+    res.status(500).json({ error: 'Erreur serveur : ' + (err.message || 'Problème de base de données') });
   }
 });
 
